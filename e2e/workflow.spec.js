@@ -1,0 +1,211 @@
+import { test, expect } from '@playwright/test';
+test('manual script, real browser capture, offline reviews, muted video, and reset', async ({
+  page,
+}) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Enter studio' }).click();
+  await page
+    .getByLabel('Your practice script')
+    .fill(
+      'Today I want to share a simple idea. Practice turns an unfamiliar skill into something natural. A short daily habit can make a difference.',
+    );
+  await page.getByRole('button', { name: 'Set up my recording' }).click();
+  await expect(page.getByRole('button', { name: 'Start practice' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Enable camera & microphone' }).click();
+  await expect(page.locator('#camera-status')).toContainText('loaded', { timeout: 20000 });
+  await page.locator('#consent').check();
+  await page.getByRole('button', { name: 'Start practice' }).click();
+  await expect(page.getByRole('button', { name: 'Finish practice' })).toBeVisible();
+  await expect(page.locator('#timer')).not.toHaveText('00:00', { timeout: 8000 });
+  await page.getByRole('button', { name: 'Finish practice' }).click();
+  await expect(page.getByRole('heading', { name: 'Hear your talk with fresh ears.' })).toBeVisible({
+    timeout: 10000,
+  });
+  await expect(page.locator('audio')).toBeVisible();
+  await expect
+    .poll(() =>
+      page.locator('audio').evaluate((el) => Number.isFinite(el.duration) && el.duration > 0),
+    )
+    .toBe(true);
+  await page.getByRole('button', { name: 'Watch my delivery' }).click();
+  await expect(page.locator('#review-player')).toBeVisible();
+  expect(await page.locator('#review-player').evaluate((el) => el.muted)).toBe(true);
+  await page.locator('#review-player').evaluate((el) => {
+    el.muted = false;
+  });
+  await expect.poll(() => page.locator('#review-player').evaluate((el) => el.muted)).toBe(true);
+  await page.getByRole('button', { name: 'Bring it together', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Overall score unavailable' })).toBeVisible();
+  await expect(page.locator('#chat-input')).toBeDisabled();
+  await page.getByRole('button', { name: 'New practice' }).click();
+  await expect(page.getByLabel('Your practice script')).toHaveValue(/Today I want/);
+  expect(errors).toEqual([]);
+});
+test('script generation and quota errors are visible without exposing a key', async ({ page }) => {
+  await page.route('**/api/health', (route) =>
+    route.fulfill({ json: { ok: true, aiConfigured: true } }),
+  );
+  await page.route('**/api/scripts', (route) =>
+    route.fulfill({
+      status: 429,
+      json: { error: 'The free Gemini quota is currently exhausted. Retry later.' },
+    }),
+  );
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Enter studio' }).click();
+  await page.getByRole('tab', { name: 'Draft with Gemini' }).click();
+  await page.getByLabel('What would you like to talk about?').fill('Learning a new skill');
+  await page.getByRole('button', { name: 'Generate a draft' }).click();
+  await expect(page.getByRole('alert')).toContainText('quota');
+  await expect(page.getByRole('button', { name: 'Generate a draft' })).toBeEnabled();
+});
+test('layout fits a small viewport and respects keyboard access', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#page-content')).toBeFocused();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  expect(
+    await page
+      .locator('.hero-copy')
+      .evaluate((el) => el.getBoundingClientRect().right <= window.innerWidth),
+  ).toBe(true);
+  expect(
+    await page.locator('.hero-copy h1').evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBe(true);
+});
+
+test('home, about, and studio navigation preserve the script and support browser history', async ({
+  page,
+}) => {
+  await page.goto('/#about');
+  await expect(page.getByRole('heading', { name: 'Every voice deserves a stage.' })).toBeVisible();
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: 'Home', exact: true })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Make yourself heard.' })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Every voice deserves a stage.' })).toBeVisible();
+  await page.getByRole('link', { name: 'Open studio' }).click();
+  await page.getByLabel('Your practice script').fill('This draft should survive page navigation.');
+  await page
+    .getByRole('navigation', { name: 'Website navigation' })
+    .getByRole('link', { name: 'About us' })
+    .click();
+  await page.getByRole('link', { name: 'Open studio' }).click();
+  await expect(page.getByLabel('Your practice script')).toHaveValue(
+    'This draft should survive page navigation.',
+  );
+});
+
+test('landing page review explorer, FAQ, and mobile about page are usable', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'See how it works' }).click();
+  const watch = page.getByRole('tab', { name: 'Watch', exact: true });
+  await watch.click();
+  await expect(page.getByRole('tabpanel')).toContainText('Let your delivery speak.');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('tab', { name: 'Reflect', exact: true })).toBeFocused();
+  await expect(page.getByRole('tabpanel')).toContainText('Turn reflection into a next step.');
+  await page.getByText('Does Stagecraft measure confidence?', { exact: true }).click();
+  await expect(page.getByText(/A webcam cannot measure how confident you feel/)).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: 'About us' })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Every voice deserves a stage.' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: 'Home', exact: true })
+    .click();
+  expect(
+    await page.locator('.note-voice').evaluate((el) => getComputedStyle(el).animationName),
+  ).toBe('none');
+});
+
+test('completed reviews render safe evidence links and streamed coaching', async ({ page }) => {
+  const stage = {
+    summary: 'You kept a steady rhythm. <img src=x onerror="window.bad=true">',
+    strengths: [
+      { title: 'A clear opening', detail: 'Your first idea is easy to follow.', evidenceIds: [] },
+    ],
+    improvements: [
+      {
+        title: 'Give the transition some space',
+        detail: 'Try a deliberate breath.',
+        evidenceIds: ['pause-1'],
+      },
+    ],
+    limitations: ['This fixture tests rendering, not Gemini accuracy.'],
+  };
+  await page.route('**/api/health', (route) =>
+    route.fulfill({ json: { ok: true, aiConfigured: true } }),
+  );
+  await page.route('**/api/sessions/*/analyze', (route) =>
+    route.fulfill({ status: 202, json: { jobId: 'fixture', status: 'processing' } }),
+  );
+  await page.route('**/api/sessions/*/report', (route) =>
+    route.fulfill({
+      json: {
+        status: 'complete',
+        stages: {
+          audio: stage,
+          video: { ...stage, summary: 'Your shoulders stayed in view.' },
+          combined: stage,
+        },
+        transcript: 'A clear opening.',
+        evidence: [{ id: 'pause-1', category: 'pause', startMs: 250, endMs: 500 }],
+        score: {
+          score: null,
+          reasons: ['This short fixture has insufficient delivery duration.'],
+          penalties: { filler: 0, pace: 0, pause: 0, posture: 0 },
+          coverage: { posture: 0 },
+          metrics: { wpm: 120, fillers: 0, pauses: 1, postureDeviationPercent: 0 },
+        },
+      },
+    }),
+  );
+  await page.route('**/api/sessions/*/chat', (route) =>
+    route.fulfill({
+      contentType: 'application/x-ndjson',
+      body: '{"text":"Start with one clear idea."}\n{"done":true}\n',
+    }),
+  );
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Enter studio' }).click();
+  await page
+    .getByLabel('Your practice script')
+    .fill('A short practice script for testing complete reviews and coaching.');
+  await page.getByRole('button', { name: 'Set up my recording' }).click();
+  await page.getByRole('button', { name: 'Enable camera & microphone' }).click();
+  await page.locator('#consent').check();
+  await expect(page.getByRole('button', { name: 'Start practice' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Start practice' }).click();
+  await expect(page.locator('#timer')).not.toHaveText('00:00', { timeout: 8000 });
+  await page.getByRole('button', { name: 'Finish practice' }).click();
+  await expect(page.getByText('Give the transition some space')).toBeVisible();
+  expect(await page.evaluate(() => window.bad)).toBeUndefined();
+  await page.getByRole('button', { name: 'At 00:00', exact: true }).click();
+  await expect
+    .poll(() => page.locator('#review-player').evaluate((el) => el.currentTime))
+    .toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'Watch my delivery' }).click();
+  await expect(page.getByText('Your shoulders stayed in view.')).toBeVisible();
+  await page.getByRole('button', { name: 'Bring it together', exact: true }).click();
+  await page.getByLabel('Ask your speaking coach').fill('What should I practice?');
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(page.getByText('Start with one clear idea.')).toBeVisible();
+  await page.getByRole('button', { name: 'New practice' }).click();
+});

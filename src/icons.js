@@ -1,0 +1,70 @@
+import {
+  createElement,
+  AudioLines,
+  Mic,
+  Video,
+  MessageCircle,
+  ShieldCheck,
+  Check,
+  Clock3,
+  Sparkles,
+  PencilLine,
+  Square,
+  RotateCcw,
+  Upload,
+  ArrowUpRight,
+  ArrowRight,
+  Play,
+  Headphones,
+  ScanLine,
+  Heart,
+  Eye,
+  SlidersHorizontal,
+  Home,
+  Info,
+  ChevronDown,
+  MoveUpRight,
+  Accessibility,
+} from 'lucide';
+
+const icons = {
+  sound: AudioLines,
+  mic: Mic,
+  video: Video,
+  chat: MessageCircle,
+  shield: ShieldCheck,
+  check: Check,
+  clock: Clock3,
+  spark: Sparkles,
+  edit: PencilLine,
+  stop: Square,
+  reset: RotateCcw,
+  upload: Upload,
+  arrow: ArrowRight,
+  external: ArrowUpRight,
+  play: Play,
+  headphones: Headphones,
+  scan: ScanLine,
+  heart: Heart,
+  eye: Eye,
+  sliders: SlidersHorizontal,
+  home: Home,
+  info: Info,
+  down: ChevronDown,
+  rise: MoveUpRight,
+  access: Accessibility,
+};
+const cache = new Map();
+export function icon(name) {
+  if (!cache.has(name))
+    cache.set(
+      name,
+      createElement(icons[name] || Sparkles, {
+        'aria-hidden': 'true',
+        focusable: 'false',
+        'stroke-width': 1.7,
+        class: 'lucide-icon',
+      }).outerHTML,
+    );
+  return cache.get(name);
+}

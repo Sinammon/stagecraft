@@ -1,0 +1,8 @@
+node_modules
+dist
+pnpm-lock.yaml
+public/wasm
+public/models
+test-results
+playwright-report
+.env
