@@ -90,7 +90,7 @@ pnpm build
 pnpm test:e2e
 ```
 
-Browser tests use installed Microsoft Edge with fake camera/microphone devices. Install Edge, or update `playwright.config.js` to use your installed Chromium channel. They test actual browser MediaRecorder/AudioWorklet capture, offline playback, muted video, reset, quota errors, keyboard access, and narrow layouts. Backend/provider tests use explicit test doubles and never call the paid or free live API.
+Browser tests use an installed Chromium binary when available (set `PLAYWRIGHT_EXECUTABLE_PATH` to override it) with fake camera/microphone devices. They test actual browser MediaRecorder/AudioWorklet capture, offline playback, muted video, reset, quota errors, keyboard access, and narrow layouts. Backend/provider tests use explicit test doubles and never call the paid or free live API.
 
 Real-device and credentialed Gemini checks are still required before a public release: seated/standing calibration, speech with accents/noise, five-minute synchronization, connectivity loss, actual project quotas, model response shape, provider deletion, and AI advice accuracy. The target of 90% filler precision, 80% recall, and evidence alignment under 250 ms requires an annotated evaluation dataset; it is not implied by automated unit tests.
 
