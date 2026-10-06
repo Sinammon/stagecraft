@@ -23,7 +23,8 @@ export async function buildApp({
     limits: { files: 1, fields: 1, parts: 2, fileSize: 10000000, fieldSize: 4000000 },
     throwFileSizeLimit: true,
   });
-  await app.register(websocket, { options: { maxPayload: 40000 } });
+  const isVercel = Boolean(env.VERCEL);
+  if (!isVercel) await app.register(websocket, { options: { maxPayload: 40000 } });
   const rate = new Map();
   const allowedOrigins = new Set([env.APP_ORIGIN || 'http://localhost:3000']);
   const addOrigin = (value) => {
@@ -402,148 +403,149 @@ export async function buildApp({
     }
   });
   let liveCount = 0;
-  app.get(
-    '/api/sessions/:id/transcription',
-    {
-      websocket: true,
-      preValidation: async (request) => {
-        requireSession(request);
-        if (!provider.key)
-          throw Object.assign(new Error('Add GEMINI_API_KEY to enable live transcription.'), {
-            statusCode: 503,
+  if (!isVercel)
+    app.get(
+      '/api/sessions/:id/transcription',
+      {
+        websocket: true,
+        preValidation: async (request) => {
+          requireSession(request);
+          if (!provider.key)
+            throw Object.assign(new Error('Add GEMINI_API_KEY to enable live transcription.'), {
+              statusCode: 503,
+            });
+        },
+      },
+      (socket, request) => {
+        const s = requireSession(request);
+        if (s.live || liveCount >= 4) {
+          socket.close(1013, 'Live transcription is busy.');
+          return;
+        }
+        s.live = true;
+        liveCount++;
+        let live,
+          audioMs = 0,
+          turn = 0,
+          startMs = 0,
+          pending = '',
+          ended = false,
+          lastSignature = '';
+        const send = (value) => {
+          if (socket.readyState === 1) socket.send(JSON.stringify(value));
+        };
+        const cleanup = () => {
+          if (ended) return;
+          ended = true;
+          s.live = false;
+          liveCount--;
+          clearTimeout(timer);
+          s.resources.delete(close);
+          try {
+            live?.close();
+          } catch {}
+        };
+        const close = () => {
+          cleanup();
+          socket.close(1000, 'Session ended.');
+        };
+        const timer = setTimeout(close, 310000);
+        s.resources.add(close);
+        socket.on('close', cleanup);
+        socket.on('error', cleanup);
+        // Install message handlers synchronously so frames arriving while upstream connects are not lost silently.
+        socket.on('message', (buffer, binary) => {
+          if (ended) return;
+          if (binary) {
+            if (!live) {
+              send({ type: 'error', message: 'Wait for live transcription to connect.' });
+              return;
+            }
+            if (buffer.length % 2 || buffer.length > 16000) {
+              socket.close(1009, 'Invalid audio chunk.');
+              return;
+            }
+            audioMs += buffer.length / 32;
+            if (audioMs > 300250) {
+              close();
+              return;
+            }
+            try {
+              live.sendRealtimeInput({
+                audio: { data: buffer.toString('base64'), mimeType: 'audio/pcm;rate=16000' },
+              });
+            } catch {
+              close();
+            }
+          } else {
+            let data;
+            try {
+              data = JSON.parse(buffer.toString());
+            } catch {
+              socket.close(1008, 'Invalid message.');
+              return;
+            }
+            if (data.type === 'end') {
+              live?.sendRealtimeInput({ audioStreamEnd: true });
+              setTimeout(close, 2000).unref();
+            }
+            if (data.type === 'cancel') close();
+          }
+        });
+        void provider
+          .connectLive(
+            {
+              onmessage: (message) => {
+                const content = message.serverContent;
+                if (!content || ended) return;
+                const interim = content.interimInputTranscription;
+                if (interim?.text) send({ type: 'interim', text: interim.text });
+                const final = content.inputTranscription;
+                if (final?.text) {
+                  if (final.finished === false) {
+                    pending += final.text;
+                    return;
+                  }
+                  const text = pending + final.text;
+                  pending = '';
+                  const signature = `${text}:${audioMs}`;
+                  if (signature === lastSignature) return;
+                  lastSignature = signature;
+                  send({
+                    type: 'final',
+                    id: `turn-${turn++}`,
+                    text,
+                    startMs,
+                    endMs: audioMs,
+                    timing: 'approximate',
+                  });
+                  startMs = audioMs;
+                }
+              },
+              onerror: () => {
+                send({
+                  type: 'error',
+                  message: 'Live transcription stopped. Final audio analysis can still be retried.',
+                });
+                close();
+              },
+              onclose: () => close(),
+            },
+            s.abort.signal,
+          )
+          .then((connection) => {
+            if (ended) connection.close();
+            else {
+              live = connection;
+              send({ type: 'ready' });
+            }
+          })
+          .catch((e) => {
+            send({ type: 'error', message: publicProviderError(e) });
+            close();
           });
       },
-    },
-    (socket, request) => {
-      const s = requireSession(request);
-      if (s.live || liveCount >= 4) {
-        socket.close(1013, 'Live transcription is busy.');
-        return;
-      }
-      s.live = true;
-      liveCount++;
-      let live,
-        audioMs = 0,
-        turn = 0,
-        startMs = 0,
-        pending = '',
-        ended = false,
-        lastSignature = '';
-      const send = (value) => {
-        if (socket.readyState === 1) socket.send(JSON.stringify(value));
-      };
-      const cleanup = () => {
-        if (ended) return;
-        ended = true;
-        s.live = false;
-        liveCount--;
-        clearTimeout(timer);
-        s.resources.delete(close);
-        try {
-          live?.close();
-        } catch {}
-      };
-      const close = () => {
-        cleanup();
-        socket.close(1000, 'Session ended.');
-      };
-      const timer = setTimeout(close, 310000);
-      s.resources.add(close);
-      socket.on('close', cleanup);
-      socket.on('error', cleanup);
-      // Install message handlers synchronously so frames arriving while upstream connects are not lost silently.
-      socket.on('message', (buffer, binary) => {
-        if (ended) return;
-        if (binary) {
-          if (!live) {
-            send({ type: 'error', message: 'Wait for live transcription to connect.' });
-            return;
-          }
-          if (buffer.length % 2 || buffer.length > 16000) {
-            socket.close(1009, 'Invalid audio chunk.');
-            return;
-          }
-          audioMs += buffer.length / 32;
-          if (audioMs > 300250) {
-            close();
-            return;
-          }
-          try {
-            live.sendRealtimeInput({
-              audio: { data: buffer.toString('base64'), mimeType: 'audio/pcm;rate=16000' },
-            });
-          } catch {
-            close();
-          }
-        } else {
-          let data;
-          try {
-            data = JSON.parse(buffer.toString());
-          } catch {
-            socket.close(1008, 'Invalid message.');
-            return;
-          }
-          if (data.type === 'end') {
-            live?.sendRealtimeInput({ audioStreamEnd: true });
-            setTimeout(close, 2000).unref();
-          }
-          if (data.type === 'cancel') close();
-        }
-      });
-      void provider
-        .connectLive(
-          {
-            onmessage: (message) => {
-              const content = message.serverContent;
-              if (!content || ended) return;
-              const interim = content.interimInputTranscription;
-              if (interim?.text) send({ type: 'interim', text: interim.text });
-              const final = content.inputTranscription;
-              if (final?.text) {
-                if (final.finished === false) {
-                  pending += final.text;
-                  return;
-                }
-                const text = pending + final.text;
-                pending = '';
-                const signature = `${text}:${audioMs}`;
-                if (signature === lastSignature) return;
-                lastSignature = signature;
-                send({
-                  type: 'final',
-                  id: `turn-${turn++}`,
-                  text,
-                  startMs,
-                  endMs: audioMs,
-                  timing: 'approximate',
-                });
-                startMs = audioMs;
-              }
-            },
-            onerror: () => {
-              send({
-                type: 'error',
-                message: 'Live transcription stopped. Final audio analysis can still be retried.',
-              });
-              close();
-            },
-            onclose: () => close(),
-          },
-          s.abort.signal,
-        )
-        .then((connection) => {
-          if (ended) connection.close();
-          else {
-            live = connection;
-            send({ type: 'ready' });
-          }
-        })
-        .catch((e) => {
-          send({ type: 'error', message: publicProviderError(e) });
-          close();
-        });
-    },
-  );
+    );
   if (serveStatic && existsSync(resolve('dist/index.html')))
     await app.register(staticFiles, { root: resolve('dist'), prefix: '/', index: 'index.html' });
   app.decorate('sessionStore', store);
