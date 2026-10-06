@@ -71,4 +71,88 @@ describe('Gemini adapter', () => {
       timestamp_granularities: ['word'],
     });
   });
+  it('rejects invalid, reversed, and out-of-recording timestamps', () => {
+    for (const [start, end] of [
+      ['broken', '1s'],
+      ['2s', '1s'],
+      ['0s', '3s'],
+    ]) {
+      const interaction = {
+        steps: [
+          {
+            type: 'model_output',
+            content: [
+              {
+                type: 'text',
+                text: 'hello',
+                annotations: [
+                  { type: 'word_info', text: 'hello', start_offset: start, end_offset: end },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      expect(() => extractTranscript(interaction, 1000)).toThrow(/invalid word timing/);
+    }
+  });
+  it('validates review structure and removes unsupported evidence IDs', async () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: 'test-key' });
+    provider.run = (fn) => fn();
+    const review = {
+      summary: 'A clear opening.',
+      strengths: [
+        { title: 'Clear', detail: 'An easy-to-follow idea.', evidenceIds: ['known', 'invented'] },
+      ],
+      improvements: [],
+      limitations: [],
+    };
+    provider.ai.interactions.create = async () => ({
+      status: 'completed',
+      output_text: JSON.stringify(review),
+    });
+    const result = await provider.review('audio', { evidence: [{ id: 'known' }] }, []);
+    expect(result.strengths[0].evidenceIds).toEqual(['known']);
+    provider.ai.interactions.create = async () => ({
+      status: 'completed',
+      output_text: '{broken}',
+    });
+    await expect(provider.review('audio', {}, [])).rejects.toMatchObject({
+      code: 'INVALID_OUTPUT',
+    });
+    provider.ai.interactions.create = async () => ({
+      status: 'completed',
+      output_text: JSON.stringify({ ...review, summary: '' }),
+    });
+    await expect(provider.review('audio', {}, [])).rejects.toMatchObject({
+      code: 'INVALID_OUTPUT',
+    });
+  });
+  it('bounds queued requests and releases the queue after cancellation', async () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: 'test-key' });
+    const controller = new AbortController();
+    controller.abort();
+    await expect(provider.run(async () => {}, { signal: controller.signal })).rejects.toThrow();
+    expect(provider.pending).toBe(0);
+    provider.pending = 16;
+    expect(() => provider.run(async () => {})).toThrow(/busy/);
+  });
+  it('does not mark truncated provider streams as successful coaching', async () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: 'test-key' });
+    provider.run = (fn) => fn();
+    provider.ai.interactions.create = async () =>
+      (async function* () {
+        yield { event_type: 'step.delta', delta: { type: 'text', text: 'Try a breath.' } };
+      })();
+    const consume = async () => {
+      for await (const text of provider.chat({ report: {}, messages: [] }, 'Help')) void text;
+    };
+    await expect(consume()).rejects.toThrow(/interrupted/);
+    provider.ai.interactions.create = async () =>
+      (async function* () {
+        yield { event_type: 'step.delta', delta: { type: 'text', text: 'Try a breath.' } };
+        yield { event_type: 'interaction.completed', interaction: { status: 'completed' } };
+      })();
+    await expect(consume()).resolves.toBeUndefined();
+  });
 });

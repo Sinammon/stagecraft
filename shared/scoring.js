@@ -36,6 +36,21 @@ export function postureCoverage(samples, startMs, endMs) {
   return { validMs, deviationMs, coverage: clamp(validMs / Math.max(1, endMs - startMs)) };
 }
 
+export function provisionalScore({ events, turns, poseSamples, liveReady }) {
+  const words = turns.reduce(
+    (count, turn) => count + turn.text.trim().split(/\s+/).filter(Boolean).length,
+    0,
+  );
+  const startMs = turns[0]?.startMs ?? 0;
+  const endMs = turns.at(-1)?.endMs ?? 0;
+  const supported =
+    liveReady &&
+    words >= RUBRIC.minWords &&
+    endMs - startMs >= RUBRIC.minDurationMs &&
+    postureCoverage(poseSamples, startMs, endMs).coverage >= RUBRIC.minCoverage;
+  return { ...liveScore(events), score: supported ? liveScore(events).score : null };
+}
+
 export function finalScore({ words = [], poseSamples = [], durationMs = 0 }) {
   const canonical = words
     .filter(

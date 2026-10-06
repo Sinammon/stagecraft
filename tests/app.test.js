@@ -60,6 +60,27 @@ it('rejects cross-origin changes and requires cloud disclosure acknowledgment', 
     400,
   );
 });
+it('uses the injected environment and restricts production origins', async () => {
+  const app = await buildApp({
+    env: { NODE_ENV: 'production', APP_ORIGIN: 'https://stagecraft.example' },
+    serveStatic: false,
+  });
+  apps.push(app);
+  expect((await app.inject({ url: '/api/health' })).json().aiConfigured).toBe(false);
+  expect(
+    (await app.inject({ url: '/api/health', headers: { origin: 'http://127.0.0.1:3000' } }))
+      .statusCode,
+  ).toBe(403);
+  const session = await app.inject({
+    method: 'POST',
+    url: '/api/sessions',
+    headers: { origin: 'https://stagecraft.example' },
+    payload: { cloudConsent: true },
+  });
+  expect(session.statusCode).toBe(200);
+  expect(session.headers['set-cookie']).toContain('Secure');
+  expect(session.headers['content-security-policy']).toContain("frame-ancestors 'none'");
+});
 it('requires ownership for reports and deletion', async () => {
   const { app, id, cookie } = await setup();
   expect((await app.inject({ url: `/api/sessions/${id}/report` })).statusCode).toBe(404);
@@ -156,6 +177,25 @@ it('returns chat as a stream and validates prerequisites', async () => {
   expect(result.body).toContain('Try a clear opening.');
   expect(result.body).toContain('"done":true');
 });
+it('fails oversized coaching streams without persisting a partial successful reply', async () => {
+  const provider = fakeProvider();
+  provider.chat = async function* () {
+    yield 'a'.repeat(12001);
+  };
+  const { app, id, cookie } = await setup(provider);
+  const session = app.sessionStore.get(id, cookie.split('=')[1]);
+  session.report.stages.combined = report;
+  const result = await app.inject({
+    method: 'POST',
+    url: `/api/sessions/${id}/chat`,
+    headers: { cookie },
+    payload: { message: 'Help me' },
+  });
+  expect(result.body).toContain('"error"');
+  expect(result.body).not.toContain('"done":true');
+  expect(session.messages).toEqual([]);
+});
+
 it('preserves visual feedback when word-timed transcription fails', async () => {
   const provider = fakeProvider();
   provider.transcribe = async () => {

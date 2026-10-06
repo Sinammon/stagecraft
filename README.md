@@ -1,6 +1,6 @@
 # Stagecraft
 
-A browser-first public-speaking practice studio built with HTML, CSS, JavaScript, MediaPipe, Fastify, and Gemini. Full video remains on the device. Gemini receives audio and selected still frames for the three review stages.
+A speaking practice studio for students and everyday conversations, built with HTML, CSS, JavaScript, MediaPipe, Fastify, and Gemini. Practice a class presentation, introduction, or idea. Full video remains on the device. With explicit consent, Gemini receives audio and selected still frames for the three review stages.
 
 ## Run locally
 
@@ -25,7 +25,7 @@ pnpm build
 pnpm start
 ```
 
-Open http://localhost:3000. The server serves the compiled frontend. The initial MVP supports desktop Chrome and Edge, English, one speaker, five-minute recordings, and seated or standing calibration. Node service restarts lose temporary reports; the page's existing local playback remains usable.
+Open http://localhost:3000. The build downloads the matching MediaPipe model if absent and bundles self-hosted fonts. The server serves the compiled frontend. Recording supports desktop Chrome and Edge, English, one speaker, five-minute recordings, and seated or standing calibration. The interface adapts to mobile and tablet; real-device mobile/Safari recording is not yet validated. Node service restarts lose temporary reports; the page's existing local playback remains usable.
 
 ## Gemini configuration
 
@@ -41,9 +41,10 @@ Read your active request, token, and daily quotas in Google AI Studio, then set 
 
 ## Privacy and lifecycle
 
-The user acknowledges the cloud-processing disclosure before a session is created. This is a prototype for non-sensitive practice material. Google's unpaid-service terms permit product improvement and human review and instruct users not to submit sensitive, confidential, or personal information; regional exceptions apply. Evaluate https://ai.google.dev/gemini-api/terms before accepting identifiable recordings from real users. Application cleanup does not promise confidential or zero-retention processing by Google.
+Local recording creates no cloud session and sends no media to the backend. AI review requires a configured server key and explicit cloud-processing consent during setup. Google's unpaid-service terms permit product improvement and human review and instruct users not to submit sensitive, confidential, or personal information; regional exceptions apply. Evaluate https://ai.google.dev/gemini-api/terms before accepting identifiable recordings from real users. Application cleanup does not promise confidential or zero-retention processing by Google.
 
 - Combined video is never accepted by the backend. It stays in a browser Blob until reset or page close.
+- Script drafts and topic preferences survive reload in this tab's sessionStorage. Recordings are not persisted. New practice clears the recording and session while keeping the script for another take.
 - Audio and at most 20 resized JPEG frames are submitted for analysis.
 - Uploaded Gemini audio is explicitly deleted in `finally`; failed deletion is disclosed. Gemini Files also have an automatic expiry.
 - Non-live Interactions use `store:false`. Chat uses application-held report/history, not provider-side conversation IDs.
@@ -53,7 +54,7 @@ The user acknowledges the cloud-processing disclosure before a session is create
 
 ## Measurement and scoring
 
-The live score starts at 100 and is explicitly provisional. Posture/audio capture operate independently; lost tracking or live transcription does not stop recording. Only finalized utterances create filler deductions. Live word timing and pace are approximate; final word annotations replace them. Only standalone `um` and `uh` are scored as fillers.
+The live score stays unavailable until finalized speech includes at least 50 words across 30 seconds, live transcription is connected, and usable posture covers at least 80% of that interval. Once supported, its deterministic running deductions are explicitly provisional. Posture/audio capture operate independently; lost tracking or live transcription does not stop recording. Only finalized utterances create filler deductions. Live word timing and pace are approximate; final word annotations replace them. Only standalone `um` and `uh` are scored as fillers.
 
 The final rubric is deterministic and versioned as `v1` in `shared/scoring.js`:
 
@@ -67,9 +68,9 @@ Pitchy estimates pitch periodicity, not intelligibility. Audio level and pitch-v
 
 ## Architecture
 
-The interface uses a Liquid Glass-inspired web design with translucent materials, system typography, and Lucide icons. Home (`#home`), About Us (`#about`), and the speaking studio (`#studio`) share the same application; page navigation preserves the current script and review in memory. The Home page includes a keyboard-accessible review explorer and FAQ. Reduced-motion and reduced-transparency preferences are supported, with opaque material fallbacks where browser blur is unavailable.
+The interface uses deep pine, pale mint, white, and warm neutral surfaces, with self-hosted Sora and Source Sans 3 fonts and Lucide icons. Home (`#home`), About Us (`#about`), and the speaking studio (`#studio`) share the same application; page navigation preserves the current script and review in memory. The Home page includes a working topic launcher, keyboard-accessible illustrative review explorer, and FAQ. Focus, loading, error, success, local-only, and reduced-motion states are implemented.
 
-`src/pages.js` contains the public pages, `src/glass.css` defines the visual theme, and `src/icons.js` centralizes the tree-shaken Lucide icons. The microphone illustration is CSS artwork and requires no remote image or font service. Design references: [Apple materials](https://developer.apple.com/design/human-interface-guidelines/materials) and [Lucide](https://lucide.dev/guide/lucide).
+`src/pages.js` contains the public pages; `src/studio-views.js` contains preparation and setup; `src/style.css` defines shared tokens and responsive components. `src/draft.js` handles tab-scoped draft persistence, `src/text.js` handles text utilities, and `src/icons.js` centralizes tree-shaken icons. The redesign follows Impeccable; product decisions live in `PRODUCT.md` and the design system in `DESIGN.md`.
 
 - `src/`: workflow UI, capture controller, posture worker, acoustic worker, safe API/chat rendering.
 - `shared/`: scoring and calibration/episode logic shared with the backend.
@@ -88,15 +89,19 @@ Reports contain summary, strengths, improvements, limitations, and allowlisted e
 pnpm test
 pnpm build
 pnpm test:e2e
+# With pnpm start running on port 3000:
+pnpm test:visual
 ```
 
-Browser tests use an installed Chromium binary when available (set `PLAYWRIGHT_EXECUTABLE_PATH` to override it) with fake camera/microphone devices. They test actual browser MediaRecorder/AudioWorklet capture, offline playback, muted video, reset, quota errors, keyboard access, and narrow layouts. Backend/provider tests use explicit test doubles and never call the paid or free live API.
+Browser tests use an installed Chromium binary when available (set `PLAYWRIGHT_EXECUTABLE_PATH` to override it) with fake camera/microphone devices. They test browser MediaRecorder/AudioWorklet capture, offline playback, muted video, reset, draft preservation, quota errors, keyboard access, and narrow layouts. Backend/provider tests validate malformed responses, timestamps, streaming completion, cancellation, and production origin controls with explicit doubles. Visual review fixtures are synthetic and do not prove live Gemini behavior. GitHub Actions runs unit tests, build, and browser tests.
+
+For the separate live provider check, configure the server-side key and set `AI_TEST_AUDIO_PATH` to a non-sensitive mono 16 kHz, 16-bit PCM WAV. Optionally set `AI_TEST_FRAME_PATH` to a non-sensitive JPEG. Run `pnpm test:ai`. This sends the test material to Gemini and checks script generation, multipart analysis, timestamped transcription, all review stages, file cleanup, and streamed chat. It exits unsuccessfully if credentials or the fixture are missing; it never substitutes fake output. Live transcription and real-device calibration require their own manual checks.
 
 Real-device and credentialed Gemini checks are still required before a public release: seated/standing calibration, speech with accents/noise, five-minute synchronization, connectivity loss, actual project quotas, model response shape, provider deletion, and AI advice accuracy. The target of 90% filler precision, 80% recall, and evidence alignment under 250 ms requires an annotated evaluation dataset; it is not implied by automated unit tests.
 
 ## Deploy
 
-Use the included Dockerfile for the single Node service, with a reverse proxy/platform providing HTTPS and WebSocket support. Set `HOST=0.0.0.0`, `APP_ORIGIN` to the exact HTTPS origin, `SECURE_COOKIES=true`, and server-side Gemini secrets. The server trusts only the configured origin. No deployment or public upload is performed by the local setup.
+Use the included Dockerfile for a continuously running single Node service, with a reverse proxy/platform providing HTTPS and WebSocket support. Set `HOST=0.0.0.0`, `APP_ORIGIN` to the exact HTTPS origin, `SECURE_COOKIES=true`, and server-side Gemini secrets. The server trusts only the configured origin in production. Background jobs, in-memory sessions, and live WebSockets require a persistent backend; a frontend-only or serverless Vercel deployment is insufficient. No public deployment has been verified by the local setup.
 
 ```powershell
 docker build -t stagecraft .

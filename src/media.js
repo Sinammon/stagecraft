@@ -1,5 +1,5 @@
 import { calibrate, measurements, deviation, EpisodeTracker } from '../shared/posture.js';
-import { liveScore, isFiller } from '../shared/scoring.js';
+import { provisionalScore, isFiller } from '../shared/scoring.js';
 
 export function wavFromChunks(chunks) {
   const size = chunks.reduce((sum, c) => sum + c.length, 0);
@@ -352,7 +352,7 @@ export class PracticeMedia {
     }
     const words = this.turns.reduce((sum, t) => sum + t.text.split(/\s+/).length, 0);
     this.callbacks.onScore?.({
-      ...liveScore(this.events),
+      ...provisionalScore(this),
       fillers: this.events.filter((e) => e.category === 'filler').length,
       pace: (words * 60000) / Math.max(1, elapsed),
       elapsed,
@@ -427,7 +427,7 @@ export class PracticeMedia {
       audioBlob: wav.blob,
       waveform: waveform.map((v) => v / peak),
       payload,
-      live: liveScore(this.events),
+      live: provisionalScore(this),
       videoUrl: URL.createObjectURL(videoBlob),
       audioUrl: URL.createObjectURL(wav.blob),
     };

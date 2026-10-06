@@ -1,18 +1,9 @@
 import { GoogleGenAI } from '@google/genai';
 import { setTimeout as delay } from 'node:timers/promises';
 import { z } from 'zod';
+import { reviewSchema } from '../shared/reports.js';
 
-const item = z.object({
-  title: z.string().max(140),
-  detail: z.string().max(1200),
-  evidenceIds: z.array(z.string().max(80)).max(8),
-});
-export const reportSchema = z.object({
-  summary: z.string().max(1800),
-  strengths: z.array(item).max(4),
-  improvements: z.array(item).max(4),
-  limitations: z.array(z.string().max(600)).max(6),
-});
+export const reportSchema = reviewSchema;
 const jsonSchema = z.toJSONSchema(reportSchema);
 delete jsonSchema.$schema;
 export const seconds = (value) =>
@@ -21,16 +12,11 @@ export const seconds = (value) =>
     : /^\d+(\.\d+)?s$/.test(value ?? '')
       ? parseFloat(value) * 1000
       : NaN;
-export function extractTranscript(interaction) {
+export function extractTranscript(interaction, durationMs = Infinity) {
   const content = (interaction.steps ?? [])
     .filter((s) => s.type === 'model_output')
     .flatMap((s) => s.content ?? []);
-  const text =
-    interaction.output_text ??
-    content
-      .filter((c) => c.type === 'text')
-      .map((c) => c.text)
-      .join(' ');
+  const text = outputText(interaction);
   const words = content
     .flatMap((c) => c.annotations ?? [])
     .filter((a) => a.type === 'word_info')
@@ -42,6 +28,26 @@ export function extractTranscript(interaction) {
       ),
       { code: 'TIMESTAMPS_UNAVAILABLE' },
     );
+  let previous = -1;
+  for (const word of words) {
+    if (
+      typeof word.text !== 'string' ||
+      !word.text.trim() ||
+      !Number.isFinite(word.startMs) ||
+      !Number.isFinite(word.endMs) ||
+      word.startMs < 0 ||
+      word.endMs <= word.startMs ||
+      word.startMs < previous ||
+      word.endMs > durationMs + 250
+    )
+      throw Object.assign(
+        new Error(
+          'Gemini returned invalid word timing. Retry analysis; no score was calculated from this response.',
+        ),
+        { code: 'TIMESTAMPS_UNAVAILABLE' },
+      );
+    previous = word.startMs;
+  }
   const transcriptWords = text.trim().split(/\s+/).filter(Boolean).length;
   if (transcriptWords && words.length / transcriptWords < 0.8)
     throw Object.assign(
@@ -75,6 +81,8 @@ export function publicProviderError(error) {
   if (error?.code === 'QUOTA' || error?.status === 429 || error?.statusCode === 429)
     return 'The free Gemini quota is currently exhausted. Your recording is safe; retry later.';
   if (error?.code === 'TIMESTAMPS_UNAVAILABLE') return error.message;
+  if (error?.code === 'INVALID_OUTPUT')
+    return 'Gemini returned an incomplete review. Your recording is safe; retry analysis.';
   if (error?.status === 404)
     return 'This Gemini model is unavailable in your project. Check the model names in .env and Google AI Studio.';
   if (error?.status === 401 || error?.status === 403)
@@ -98,6 +106,7 @@ export class GeminiProvider {
     this.dayCount = 0;
     this.day = '';
     this.tail = Promise.resolve();
+    this.pending = 0;
     this.ai = this.key
       ? new GoogleGenAI({ apiKey: this.key, httpOptions: { timeout: this.timeout } })
       : null;
@@ -131,6 +140,11 @@ export class GeminiProvider {
   }
   run(task, { signal, tokens = 4000 } = {}) {
     this.requireKey();
+    if (this.pending >= 16)
+      throw Object.assign(new Error('The AI service is busy. Please retry shortly.'), {
+        statusCode: 429,
+      });
+    this.pending++;
     const job = this.tail
       .catch(() => {})
       .then(async () => {
@@ -145,8 +159,11 @@ export class GeminiProvider {
           return task();
         }
       });
-    this.tail = job.catch(() => {});
-    return job;
+    const completed = job.finally(() => {
+      this.pending--;
+    });
+    this.tail = completed.catch(() => {});
+    return completed;
   }
   options(signal) {
     return { signal, timeout: this.timeout, maxRetries: 0 };
@@ -171,11 +188,15 @@ export class GeminiProvider {
     if (!text || text.length > 15000) throw new Error('Invalid script output.');
     return text;
   }
-  async upload(audio) {
+  async upload(audio, signal) {
     this.requireKey();
     return this.ai.files.upload({
       file: new Blob([audio], { type: 'audio/wav' }),
-      config: { mimeType: 'audio/wav', displayName: 'temporary-practice-audio' },
+      config: {
+        mimeType: 'audio/wav',
+        displayName: 'temporary-practice-audio',
+        abortSignal: signal,
+      },
     });
   }
   async deleteFile(file) {
@@ -200,7 +221,7 @@ export class GeminiProvider {
         ),
       { signal, tokens: Math.ceil((durationMs / 1000) * 35) + 3000 },
     );
-    return extractTranscript(result);
+    return extractTranscript(result, durationMs);
   }
   async review(stage, data, media, signal) {
     const evidence = data.evidence ?? [];
@@ -223,7 +244,12 @@ export class GeminiProvider {
         tokens: stage === 'audio' ? Math.ceil(((data.durationMs || 0) / 1000) * 35) + 7000 : 12000,
       },
     );
-    const parsed = reportSchema.parse(JSON.parse(outputText(result)));
+    let parsed;
+    try {
+      parsed = reportSchema.parse(JSON.parse(outputText(result)));
+    } catch {
+      throw Object.assign(new Error('Invalid structured review.'), { code: 'INVALID_OUTPUT' });
+    }
     const allowed = new Set(evidence.map((e) => e.id));
     for (const group of [parsed.strengths, parsed.improvements])
       for (const item of group) item.evidenceIds = item.evidenceIds.filter((id) => allowed.has(id));
@@ -249,10 +275,18 @@ export class GeminiProvider {
       },
       this.options(signal),
     );
+    let completed = false;
     for await (const event of stream) {
+      signal?.throwIfAborted();
       if (event.event_type === 'step.delta' && event.delta?.type === 'text') yield event.delta.text;
       if (event.event_type === 'error') throw new Error('Gemini chat stream failed.');
+      if (event.event_type === 'interaction.completed') {
+        if (event.interaction?.status && event.interaction.status !== 'completed')
+          throw new Error('Gemini did not complete the coaching reply.');
+        completed = true;
+      }
     }
+    if (!completed) throw new Error('Gemini coaching stream was interrupted.');
   }
   async connectLive(callbacks, signal) {
     this.requireKey();

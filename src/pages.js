@@ -1,89 +1,57 @@
 import { icon } from './icons.js';
 
 const brand = `<span class="brand-mark">${icon('sound')}</span><span>stagecraft<span class="brand-period">.</span></span>`;
-const bars = Array.from(
-  { length: 35 },
-  (_, i) =>
-    `<i style="--bar:${12 + Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.36)) * 65}px;--delay:${i * -0.08}s"></i>`,
-).join('');
 const examples = {
   audio: {
-    icon: 'headphones',
-    label: 'Listen with fresh ears',
     title: 'Find the rhythm in your words.',
-    text: 'Hear your pace, pauses, and filler words with the picture out of the way.',
-    note: 'Audio-only review',
-    pattern: `<div class="demo-wave">${bars}</div>`,
+    text: 'Listen without the picture. Notice where an idea lands, where you rush, and where a pause would help.',
+    heading: 'A little space makes a difference.',
+    excerpt:
+      '“The thing I learned was simple. A small habit, repeated, can change how you approach something new.”',
+    annotation: 'Try a breath after “simple” to give your next idea room.',
+    icon: 'headphones',
   },
   video: {
-    icon: 'scan',
-    label: 'See your presence',
     title: 'Let your delivery speak.',
-    text: 'Watch a muted replay and notice your posture, gestures, and movement.',
-    note: 'Muted video review',
-    pattern: `<div class="demo-person">${icon('scan')}<span>See the full picture.</span></div>`,
+    text: 'Watch a muted replay. Notice your posture, gestures, and movement without getting caught up in the words.',
+    heading: 'Look at one thing at a time.',
+    excerpt:
+      'Head and shoulders in frame. Hands free to move. A natural position you can return to.',
+    annotation: 'Compare your delivery with your own calibrated baseline.',
+    icon: 'scan',
   },
   combined: {
-    icon: 'spark',
-    label: 'Connect the dots',
     title: 'Turn reflection into a next step.',
-    text: 'Bring sound and picture together, then explore actionable feedback with your AI coach.',
-    note: 'Combined review & coaching',
-    pattern: `<div class="demo-coach">${icon('chat')}<span>What should I practice next?</span>${icon('arrow')}</div>`,
+    text: 'Bring sound and picture together. Explore the evidence with your AI coach and choose one useful thing to practice.',
+    heading: 'Make your next take intentional.',
+    excerpt: '“What should I practice next?”',
+    annotation: 'Ask for a short exercise grounded in your completed review.',
+    icon: 'chat',
   },
 };
 
 export function demoView(phase = 'audio') {
   const item = examples[phase] || examples.audio;
-  return `<div class="demo-art" aria-hidden="true">${item.pattern}<span>${item.note}</span></div><div class="demo-copy"><span class="mini-label">${icon(item.icon)}${item.label}</span><h3>${item.title}</h3><p>${item.text}</p><span class="example-label">An introduction to the review experience</span></div>`;
+  return `<div class="demo-copy"><h3>${item.title}</h3><p>${item.text}</p></div><div class="demo-example"><span class="example-label">Illustrative example · not an actual AI review</span><h4>${item.heading}</h4><p class="demo-excerpt">${item.excerpt}</p><p class="demo-annotation">${icon(item.icon)}${item.annotation}</p></div>`;
 }
 
 function navigation(page) {
-  return `<a class="skip-link" href="#page-content">Skip to content</a><header class="site-header glass"><a class="brand" href="#home" aria-label="Stagecraft home">${brand}</a><nav class="site-nav" aria-label="Main navigation"><a href="#home" ${page === 'home' ? 'aria-current="page"' : ''}>Home</a><a href="#how-it-works">How it works</a><a href="#about" ${page === 'about' ? 'aria-current="page"' : ''}>About us</a></nav><a class="button primary nav-cta" href="#studio">Open studio ${icon('external')}</a></header>`;
+  return `<a class="skip-link" href="#page-content">Skip to content</a><header class="site-header"><a class="brand" href="#home" aria-label="Stagecraft home">${brand}</a><nav class="site-nav" aria-label="Main navigation"><a href="#home" ${page === 'home' ? 'aria-current="page"' : ''}>Home</a><a href="#how-it-works">How it works</a><a href="#about" ${page === 'about' ? 'aria-current="page"' : ''}>About us</a></nav><a class="button primary nav-cta" href="#studio">Open studio ${icon('external')}</a></header>`;
 }
 
 function footer() {
-  return `<footer class="site-footer"><div><a class="brand" href="#home" aria-label="Stagecraft home">${brand}</a><p>A little practice. A little more you.</p></div><nav aria-label="Footer navigation"><a href="#home">Home</a><a href="#about">About us</a><a href="#studio">Speaking studio ${icon('external')}</a></nav><div class="footer-baseline"><span>Stagecraft · Made for your next moment.</span><span>Your voice. Your pace. Your progress.</span></div></footer>`;
+  return `<footer class="site-footer"><div><a class="brand" href="#home" aria-label="Stagecraft home">${brand}</a><p>For the things you want to say.</p></div><nav aria-label="Footer navigation"><a href="#home">Home</a><a href="#about">About us</a><a href="#studio">Speaking studio ${icon('external')}</a></nav><div class="footer-baseline"><span>Practice at your own pace.</span><span>Built for students and everyday speaking.</span></div></footer>`;
 }
 
 function endCard() {
-  return `<section class="end-card glass"><span class="glass-icon">${icon('mic')}</span><h2>Your next great talk<br>starts with a little practice.</h2><p>Bring an idea. Find your rhythm. Take the next step.</p><a class="button primary" href="#studio">Start a practice ${icon('arrow')}</a><span class="small-print">Up to 5 minutes per session · No account needed</span></section>`;
+  return `<section class="end-card"><div><h2>You have something to say.<br>Give it a practice run.</h2><p>No audience. No perfect first take. Just a place to start.</p></div><div><a class="button primary" href="#studio">Start a practice ${icon('arrow')}</a><p class="small-print">Up to 5 minutes · No account needed</p></div></section>`;
 }
 
 function home() {
-  return `<section class="landing-hero"><div class="hero-copy"><span class="hero-badge glass">${icon('spark')} A little practice. A clearer voice.</span><h1>Make yourself<br><span>heard.</span></h1><p>A quiet space to practice your talk, see what works, and feel more prepared for your next moment.</p><div class="hero-actions"><button class="button primary hero-primary" id="enter">Enter studio ${icon('arrow')}</button><a class="button hero-secondary" href="#how-it-works">See how it works ${icon('down')}</a></div><div class="hero-details"><span>${icon('clock')}Five-minute sessions</span><span>${icon('shield')}Video stays on your device</span></div></div><div class="hero-art" aria-label="Illustration of a glass microphone surrounded by the three review perspectives" role="img"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="glass-lens"><div class="lens-shine"></div><div class="mic-sculpture"><div class="mic-capsule"><div class="mic-grille"></div><span class="mic-light"></span></div><div class="mic-cradle"></div><div class="mic-stem"></div><div class="mic-base"></div></div></div><div class="float-note note-voice glass">${icon('sound')}<div><strong>Your voice, in focus</strong><span>Listen. Notice. Improve.</span></div></div><div class="float-note note-presence glass">${icon('scan')}<span>Find your presence</span></div><div class="float-note note-coach glass">${icon('spark')}<span>One thoughtful next step</span></div><span class="art-caption">A space to grow into your voice.</span></div></section><section class="occasion-strip" aria-label="Practice occasions"><span>For the moments that matter</span><div><span>Class presentations</span><span class="occasion-divider" aria-hidden="true">·</span><span>Big ideas</span><span class="occasion-divider" aria-hidden="true">·</span><span>Team updates</span><span class="occasion-divider" aria-hidden="true">·</span><span>Everyday conversations</span></div></section><section class="how-section" id="how-it-works"><div class="section-heading"><p class="eyebrow">A fresh perspective</p><h2>One talk.<br>Three ways to grow.</h2><p>It’s easier to improve when you know what to notice.<br>Take your practice one perspective at a time.</p></div><div class="perspective-cards">${[
-    [
-      'headphones',
-      '01',
-      'Hear the difference.',
-      'Listen back without distractions. Explore your pace, pauses, and the little words in between.',
-      'blue',
-    ],
-    [
-      'scan',
-      '02',
-      'See your presence.',
-      'Watch your muted recording. Notice how your posture and movement support your message.',
-      'purple',
-    ],
-    [
-      'spark',
-      '03',
-      'Find your next step.',
-      'Bring it all together. Ask your AI coach questions and leave with something specific to practice.',
-      'peach',
-    ],
-  ]
-    .map(
-      ([symbol, number, title, text, color]) =>
-        `<article class="perspective-card glass ${color}"><div class="card-top"><span class="glass-icon">${icon(symbol)}</span><span>${number}</span></div><h3>${title}</h3><p>${text}</p></article>`,
-    )
-    .join(
-      '',
-    )}</div><div class="experience glass"><div class="experience-toolbar"><div>${icon('sound')} The practice experience</div><div role="tablist" aria-label="Explore review stages">${['audio', 'video', 'combined'].map((phase, i) => `<button role="tab" id="demo-tab-${phase}" data-demo="${phase}" aria-controls="demo-panel" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${phase === 'audio' ? 'Listen' : phase === 'video' ? 'Watch' : 'Reflect'}</button>`).join('')}</div></div><div id="demo-panel" class="demo-panel" role="tabpanel" aria-labelledby="demo-tab-audio" tabindex="0">${demoView()}</div></div></section><section class="principle-strip"><div><span class="glass-icon">${icon('edit')}</span><h3>Your words. Your starting point.</h3><p>Bring your own script or turn a topic into a first draft with Gemini.</p></div><div><span class="glass-icon">${icon('sliders')}</span><h3>Practice that fits you.</h3><p>Sit or stand. Calibrate to your natural posture. Focus on progress at your pace.</p></div><div><span class="glass-icon">${icon('shield')}</span><h3>Clear about what’s shared.</h3><p>Full video stays local. AI feedback uses audio and selected images after your consent.</p></div></section><section class="faq-section"><div class="section-heading"><p class="eyebrow">Before your first take</p><h2>A few good questions.</h2></div><div class="faq-list">${[
+  return `<section class="landing-hero"><div class="hero-copy"><h1>Make yourself<br><span>heard.</span></h1><p>A private space to find your words, practice your delivery, and feel ready for the moments that matter.</p></div><form id="practice-launcher" class="practice-launcher"><label for="practice-topic">What are you practicing for?</label><div class="launcher-input"><input id="practice-topic" maxlength="400" placeholder="A class presentation, a new idea, a conversation…"><button class="button primary hero-primary" id="enter" type="submit">Enter studio ${icon('arrow')}</button></div><div class="occasion-options" aria-label="Choose a practice occasion"><button type="button" data-topic="Introduce an idea to my class">Class presentation</button><button type="button" data-topic="Introduce myself to someone new">An introduction</button><button type="button" data-topic="Explain something I care about">An idea worth sharing</button></div></form><div class="hero-baseline"><span>${icon('clock')}Five minutes for your next step.</span><span>${icon('shield')}Full video stays on your device.</span><a href="#how-it-works">See how it works ${icon('down')}</a></div><ol class="hero-sequence" aria-label="Your review process"><li><span>01</span><div><strong>Listen.</strong><p>Find the rhythm in your voice.</p></div>${icon('headphones')}</li><li><span>02</span><div><strong>Watch.</strong><p>See what your delivery adds.</p></div>${icon('video')}</li><li><span>03</span><div><strong>Reflect.</strong><p>Choose one thing to practice next.</p></div>${icon('chat')}</li></ol></section><section class="how-section" id="how-it-works"><div class="section-heading"><h2>One talk.<br>Three fresh perspectives.</h2><p>Watching yourself speak can be a lot.<br>Start with one thing, then bring it all together.</p></div><div class="experience"><div class="experience-toolbar"><span>Explore the review process</span><div role="tablist" aria-label="Explore review stages">${['audio', 'video', 'combined'].map((phase, i) => `<button role="tab" id="demo-tab-${phase}" data-demo="${phase}" aria-controls="demo-panel" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${icon(examples[phase].icon)}${phase === 'audio' ? 'Listen' : phase === 'video' ? 'Watch' : 'Reflect'}</button>`).join('')}</div></div><div id="demo-panel" class="demo-panel" role="tabpanel" aria-labelledby="demo-tab-audio" tabindex="0">${demoView()}</div></div></section><section class="practice-principles"><div class="principles-intro"><h2>A little practice.<br>A little more you.</h2><p>A first draft is a starting point. Your next take is a chance to try something new.</p><a class="text-link" href="#studio">Find your starting point ${icon('arrow')}</a></div><div class="principle-list"><article><h3>Your words, first.</h3><p>Write your own script or turn a topic into a draft with Gemini. Edit it until it sounds like you.</p></article><article><h3>A baseline that fits you.</h3><p>Sit or stand. Calibrate to your natural posture. Feedback focuses on observable habits, without guessing how you feel.</p></article><article><h3>Clear about what’s shared.</h3><p>Practice locally or opt into AI review. Full video stays in your browser; AI uses audio and selected images with your consent.</p></article></div></section><section class="faq-section"><div><h2>Before your<br>first take.</h2><p>A few things worth knowing.</p></div><div class="faq-list">${[
     [
       'What do I need to get started?',
-      'A desktop Chrome or Edge browser, a camera, a microphone, and an idea. Bring your own script or use Gemini to help draft one. Each practice can last up to five minutes.',
+      'Use a desktop Chrome or Edge browser, a camera, a microphone, and an idea. Bring your own script or ask Gemini to draft one. Each practice can last up to five minutes. You can explore the site and prepare a script on mobile.',
     ],
     [
       'Does Stagecraft measure confidence?',
@@ -91,11 +59,15 @@ function home() {
     ],
     [
       'Where does my recording go?',
-      'The full video stays in your browser. With your consent, audio and selected still frames are sent to Gemini for feedback. Google’s free service may use content for product improvement and human review. Use non-sensitive practice material.',
+      'The full video stays in your browser and is cleared when you reset or close the page. With your consent, audio and selected still frames go to Gemini for feedback. Google’s free service may use content for product improvement and human review. Use non-sensitive practice material.',
     ],
     [
       'Can I practice without AI?',
-      'Yes. With the local app running, you can write a script, record, track posture, and play back your practice without a Gemini key. AI scripts, transcription, summaries, and chat need a configured key and available quota.',
+      'Yes. Write a script, record, and play back your practice locally. You do not need to consent to cloud processing for local recording. AI drafting, transcription, reviews, and coaching require a configured service and available quota.',
+    ],
+    [
+      'Why might my overall score be unavailable?',
+      'A score needs at least 30 seconds of delivery, 50 words with valid timestamps, and enough usable posture tracking. When evidence is missing, Stagecraft explains the limitation instead of inventing a score.',
     ],
   ]
     .map(([q, a]) => `<details><summary>${q}${icon('down')}</summary><p>${a}</p></details>`)
@@ -103,30 +75,24 @@ function home() {
 }
 
 function about() {
-  return `<section class="about-hero"><span class="hero-badge glass">${icon('heart')} About Stagecraft</span><h1>Every voice<br>deserves a <span>stage.</span></h1><p>We believe speaking well is something you can practice.<br>One idea, one attempt, one small improvement at a time.</p></section><section class="mission-grid"><div class="mission-art glass" aria-hidden="true"><div class="mission-orb">${icon('sound')}</div><span class="mission-caption">Less pressure.<br>More possibility.</span><div class="mission-rings"></div></div><div class="mission-copy"><p class="eyebrow">Why we’re here</p><h2>The space between<br>“I have an idea”<br>and saying it out loud.</h2><p>A good idea deserves to be heard. But watching yourself speak can feel overwhelming: your words, your voice, your movement, all at once.</p><p>Stagecraft creates room to notice one thing at a time. Listen first. Watch next. Then bring the two together with practical feedback you can take into your next attempt.</p><a class="text-link" href="#how-it-works">Explore the practice process ${icon('arrow')}</a></div></section><section class="values-section"><div class="section-heading"><p class="eyebrow">What we believe</p><h2>Built around your progress.</h2></div><div class="perspective-cards">${[
+  return `<section class="about-hero"><h1>Every voice<br>deserves a <span>stage.</span></h1><p>Speaking well is something you can practice.<br>One idea, one attempt, one useful next step.</p></section><section class="mission-section"><h2>The space between<br>having an idea<br>and saying it out loud.</h2><div><p>You might have a presentation coming up. Or a question you want to ask. Or something you care about that is harder to explain out loud.</p><p>Stagecraft gives you room to rehearse without an audience. Listen first, watch next, and notice one thing at a time. Bring the observations together when you’re ready.</p><p>The goal is a useful next attempt. Your voice doesn’t need to become someone else’s.</p><a class="text-link" href="#studio">Give yourself a practice run ${icon('arrow')}</a></div></section><section class="values-section"><h2>A better kind of feedback.</h2><div class="value-list">${[
     [
-      'heart',
-      'Coaching with care.',
-      'Feedback should give you a next step, not a label. We focus on observable habits and useful suggestions, without making assumptions about who you are.',
+      'Useful, not judgmental.',
+      'An observation should help you choose a next step. Feedback describes speaking habits without labeling your personality or assuming how you feel.',
     ],
     [
-      'eye',
-      'Clarity over guesswork.',
-      'A score should have a reason. Speech and posture measurements support the feedback, and missing evidence is shown instead of pretending to know.',
+      'Evidence, not guesswork.',
+      'Your score comes from a transparent rubric. Reviews link to moments in your recording when evidence is available. Missing data stays visible.',
     ],
     [
-      'access',
       'Room for your own style.',
-      'There is no single way to sound compelling. Seated or standing, thoughtful or animated, the aim is to help your delivery support your message.',
+      'There is no single way to sound compelling. Seated or standing, thoughtful or animated, practice should help your delivery support your message.',
     ],
   ]
-    .map(
-      ([symbol, title, text]) =>
-        `<article class="perspective-card glass"><span class="glass-icon">${icon(symbol)}</span><h3>${title}</h3><p>${text}</p></article>`,
-    )
+    .map(([title, text]) => `<article><h3>${title}</h3><p>${text}</p></article>`)
     .join(
       '',
-    )}</div></section><section class="about-note glass"><span class="glass-icon">${icon('shield')}</span><div><p class="eyebrow">A thoughtful use of AI</p><h2>You bring the voice.<br>Technology brings another perspective.</h2><p>Gemini helps draft scripts and explain your practice. Browser-based tracking notices posture changes. Neither replaces your judgment or tells you how you feel. Full video stays on your device; audio and selected images are shared for AI feedback only after the disclosure in the studio.</p><a class="text-link" href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">Read Gemini’s data terms ${icon('external')}</a></div></section>${endCard()}`;
+    )}</div></section><section class="about-note"><h2>Your voice.<br>Your choice.</h2><div><p>Gemini can help draft a script and explain your practice. Browser-based tracking notices changes in visible posture. Neither tells you how you feel or replaces your judgment.</p><p>Full video stays on your device. Audio and selected images are shared for AI feedback only when you opt in. Local recording is available without cloud review.</p><a class="text-link" href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">Read Gemini’s data terms ${icon('external')}</a></div></section>${endCard()}`;
 }
 
 export function publicPage(page) {

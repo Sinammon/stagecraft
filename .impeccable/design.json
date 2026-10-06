@@ -1,0 +1,660 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-05T23:29:23.071Z",
+  "title": "Design System: Stagecraft",
+  "extensions": {
+    "colorMeta": {
+      "green": {
+        "role": "primary",
+        "displayName": "Green",
+        "tonalRamp": [
+          "oklch(15% 0.0603 170.4)",
+          "oklch(26% 0.0603 170.4)",
+          "oklch(38% 0.0603 170.4)",
+          "oklch(49% 0.0603 170.4)",
+          "oklch(61% 0.0603 170.4)",
+          "oklch(72% 0.0603 170.4)",
+          "oklch(84% 0.0603 170.4)",
+          "oklch(95% 0.0603 170.4)"
+        ]
+      },
+      "green-hover": {
+        "role": "primary",
+        "displayName": "Green Hover",
+        "tonalRamp": [
+          "oklch(15% 0.0527 169.5)",
+          "oklch(26% 0.0527 169.5)",
+          "oklch(38% 0.0527 169.5)",
+          "oklch(49% 0.0527 169.5)",
+          "oklch(61% 0.0527 169.5)",
+          "oklch(72% 0.0527 169.5)",
+          "oklch(84% 0.0527 169.5)",
+          "oklch(95% 0.0527 169.5)"
+        ]
+      },
+      "pine-field": {
+        "role": "primary",
+        "displayName": "Pine Field",
+        "tonalRamp": [
+          "oklch(15% 0.0502 170.7)",
+          "oklch(26% 0.0502 170.7)",
+          "oklch(38% 0.0502 170.7)",
+          "oklch(49% 0.0502 170.7)",
+          "oklch(61% 0.0502 170.7)",
+          "oklch(72% 0.0502 170.7)",
+          "oklch(84% 0.0502 170.7)",
+          "oklch(95% 0.0502 170.7)"
+        ]
+      },
+      "mint": {
+        "role": "primary",
+        "displayName": "Mint",
+        "tonalRamp": [
+          "oklch(15% 0.0300 151.5)",
+          "oklch(26% 0.0300 151.5)",
+          "oklch(38% 0.0300 151.5)",
+          "oklch(49% 0.0300 151.5)",
+          "oklch(61% 0.0300 151.5)",
+          "oklch(72% 0.0300 151.5)",
+          "oklch(84% 0.0300 151.5)",
+          "oklch(95% 0.0300 151.5)"
+        ]
+      },
+      "mint-highlight": {
+        "role": "primary",
+        "displayName": "Mint Highlight",
+        "tonalRamp": [
+          "oklch(15% 0.0541 148.4)",
+          "oklch(26% 0.0541 148.4)",
+          "oklch(38% 0.0541 148.4)",
+          "oklch(49% 0.0541 148.4)",
+          "oklch(61% 0.0541 148.4)",
+          "oklch(72% 0.0541 148.4)",
+          "oklch(84% 0.0541 148.4)",
+          "oklch(95% 0.0541 148.4)"
+        ]
+      },
+      "mint-hover": {
+        "role": "primary",
+        "displayName": "Mint Hover",
+        "tonalRamp": [
+          "oklch(15% 0.0390 150.0)",
+          "oklch(26% 0.0390 150.0)",
+          "oklch(38% 0.0390 150.0)",
+          "oklch(49% 0.0390 150.0)",
+          "oklch(61% 0.0390 150.0)",
+          "oklch(72% 0.0390 150.0)",
+          "oklch(84% 0.0390 150.0)",
+          "oklch(95% 0.0390 150.0)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "oklch(15% 0.0304 174.6)",
+          "oklch(26% 0.0304 174.6)",
+          "oklch(38% 0.0304 174.6)",
+          "oklch(49% 0.0304 174.6)",
+          "oklch(61% 0.0304 174.6)",
+          "oklch(72% 0.0304 174.6)",
+          "oklch(84% 0.0304 174.6)",
+          "oklch(95% 0.0304 174.6)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "tonalRamp": [
+          "oklch(15% 0.0241 160.8)",
+          "oklch(26% 0.0241 160.8)",
+          "oklch(38% 0.0241 160.8)",
+          "oklch(49% 0.0241 160.8)",
+          "oklch(61% 0.0241 160.8)",
+          "oklch(72% 0.0241 160.8)",
+          "oklch(84% 0.0241 160.8)",
+          "oklch(95% 0.0241 160.8)"
+        ]
+      },
+      "page": {
+        "role": "neutral",
+        "displayName": "Page",
+        "tonalRamp": [
+          "oklch(15% 0.0041 121.6)",
+          "oklch(26% 0.0041 121.6)",
+          "oklch(38% 0.0041 121.6)",
+          "oklch(49% 0.0041 121.6)",
+          "oklch(61% 0.0041 121.6)",
+          "oklch(72% 0.0041 121.6)",
+          "oklch(84% 0.0041 121.6)",
+          "oklch(95% 0.0041 121.6)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.9)",
+          "oklch(26% 0.0000 89.9)",
+          "oklch(38% 0.0000 89.9)",
+          "oklch(49% 0.0000 89.9)",
+          "oklch(61% 0.0000 89.9)",
+          "oklch(72% 0.0000 89.9)",
+          "oklch(84% 0.0000 89.9)",
+          "oklch(95% 0.0000 89.9)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "tonalRamp": [
+          "oklch(15% 0.0090 134.9)",
+          "oklch(26% 0.0090 134.9)",
+          "oklch(38% 0.0090 134.9)",
+          "oklch(49% 0.0090 134.9)",
+          "oklch(61% 0.0090 134.9)",
+          "oklch(72% 0.0090 134.9)",
+          "oklch(84% 0.0090 134.9)",
+          "oklch(95% 0.0090 134.9)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "tonalRamp": [
+          "oklch(15% 0.0131 141.8)",
+          "oklch(26% 0.0131 141.8)",
+          "oklch(38% 0.0131 141.8)",
+          "oklch(49% 0.0131 141.8)",
+          "oklch(61% 0.0131 141.8)",
+          "oklch(72% 0.0131 141.8)",
+          "oklch(84% 0.0131 141.8)",
+          "oklch(95% 0.0131 141.8)"
+        ]
+      },
+      "field-border": {
+        "role": "neutral",
+        "displayName": "Field Border",
+        "tonalRamp": [
+          "oklch(15% 0.0256 147.2)",
+          "oklch(26% 0.0256 147.2)",
+          "oklch(38% 0.0256 147.2)",
+          "oklch(49% 0.0256 147.2)",
+          "oklch(61% 0.0256 147.2)",
+          "oklch(72% 0.0256 147.2)",
+          "oklch(84% 0.0256 147.2)",
+          "oklch(95% 0.0256 147.2)"
+        ]
+      },
+      "field-border-hover": {
+        "role": "neutral",
+        "displayName": "Field Border Hover",
+        "tonalRamp": [
+          "oklch(15% 0.0403 154.8)",
+          "oklch(26% 0.0403 154.8)",
+          "oklch(38% 0.0403 154.8)",
+          "oklch(49% 0.0403 154.8)",
+          "oklch(61% 0.0403 154.8)",
+          "oklch(72% 0.0403 154.8)",
+          "oklch(84% 0.0403 154.8)",
+          "oklch(95% 0.0403 154.8)"
+        ]
+      },
+      "focus": {
+        "role": "neutral",
+        "displayName": "Focus",
+        "tonalRamp": [
+          "oklch(15% 0.0812 162.1)",
+          "oklch(26% 0.0812 162.1)",
+          "oklch(38% 0.0812 162.1)",
+          "oklch(49% 0.0812 162.1)",
+          "oklch(61% 0.0812 162.1)",
+          "oklch(72% 0.0812 162.1)",
+          "oklch(84% 0.0812 162.1)",
+          "oklch(95% 0.0812 162.1)"
+        ]
+      },
+      "field-placeholder": {
+        "role": "neutral",
+        "displayName": "Field Placeholder",
+        "tonalRamp": [
+          "oklch(15% 0.0312 153.3)",
+          "oklch(26% 0.0312 153.3)",
+          "oklch(38% 0.0312 153.3)",
+          "oklch(49% 0.0312 153.3)",
+          "oklch(61% 0.0312 153.3)",
+          "oklch(72% 0.0312 153.3)",
+          "oklch(84% 0.0312 153.3)",
+          "oklch(95% 0.0312 153.3)"
+        ]
+      },
+      "pine-text": {
+        "role": "primary",
+        "displayName": "Pine Text",
+        "tonalRamp": [
+          "oklch(15% 0.0106 136.6)",
+          "oklch(26% 0.0106 136.6)",
+          "oklch(38% 0.0106 136.6)",
+          "oklch(49% 0.0106 136.6)",
+          "oklch(61% 0.0106 136.6)",
+          "oklch(72% 0.0106 136.6)",
+          "oklch(84% 0.0106 136.6)",
+          "oklch(95% 0.0106 136.6)"
+        ]
+      },
+      "pine-muted": {
+        "role": "primary",
+        "displayName": "Pine Muted",
+        "tonalRamp": [
+          "oklch(15% 0.0243 155.1)",
+          "oklch(26% 0.0243 155.1)",
+          "oklch(38% 0.0243 155.1)",
+          "oklch(49% 0.0243 155.1)",
+          "oklch(61% 0.0243 155.1)",
+          "oklch(72% 0.0243 155.1)",
+          "oklch(84% 0.0243 155.1)",
+          "oklch(95% 0.0243 155.1)"
+        ]
+      },
+      "pine-line": {
+        "role": "primary",
+        "displayName": "Pine Line",
+        "tonalRamp": [
+          "oklch(15% 0.0491 159.7)",
+          "oklch(26% 0.0491 159.7)",
+          "oklch(38% 0.0491 159.7)",
+          "oklch(49% 0.0491 159.7)",
+          "oklch(61% 0.0491 159.7)",
+          "oklch(72% 0.0491 159.7)",
+          "oklch(84% 0.0491 159.7)",
+          "oklch(95% 0.0491 159.7)"
+        ]
+      },
+      "mint-text": {
+        "role": "primary",
+        "displayName": "Mint Text",
+        "tonalRamp": [
+          "oklch(15% 0.0430 154.1)",
+          "oklch(26% 0.0430 154.1)",
+          "oklch(38% 0.0430 154.1)",
+          "oklch(49% 0.0430 154.1)",
+          "oklch(61% 0.0430 154.1)",
+          "oklch(72% 0.0430 154.1)",
+          "oklch(84% 0.0430 154.1)",
+          "oklch(95% 0.0430 154.1)"
+        ]
+      },
+      "step-active": {
+        "role": "neutral",
+        "displayName": "Step Active",
+        "tonalRamp": [
+          "oklch(15% 0.0244 141.5)",
+          "oklch(26% 0.0244 141.5)",
+          "oklch(38% 0.0244 141.5)",
+          "oklch(49% 0.0244 141.5)",
+          "oklch(61% 0.0244 141.5)",
+          "oklch(72% 0.0244 141.5)",
+          "oklch(84% 0.0244 141.5)",
+          "oklch(95% 0.0244 141.5)"
+        ]
+      },
+      "red": {
+        "role": "semantic",
+        "displayName": "Red",
+        "tonalRamp": [
+          "oklch(15% 0.1423 28.0)",
+          "oklch(26% 0.1423 28.0)",
+          "oklch(38% 0.1423 28.0)",
+          "oklch(49% 0.1423 28.0)",
+          "oklch(61% 0.1423 28.0)",
+          "oklch(72% 0.1423 28.0)",
+          "oklch(84% 0.1423 28.0)",
+          "oklch(95% 0.1423 28.0)"
+        ]
+      },
+      "red-hover": {
+        "role": "semantic",
+        "displayName": "Red Hover",
+        "tonalRamp": [
+          "oklch(15% 0.1251 27.9)",
+          "oklch(26% 0.1251 27.9)",
+          "oklch(38% 0.1251 27.9)",
+          "oklch(49% 0.1251 27.9)",
+          "oklch(61% 0.1251 27.9)",
+          "oklch(72% 0.1251 27.9)",
+          "oklch(84% 0.1251 27.9)",
+          "oklch(95% 0.1251 27.9)"
+        ]
+      },
+      "error-text": {
+        "role": "semantic",
+        "displayName": "Error Text",
+        "tonalRamp": [
+          "oklch(15% 0.1285 29.3)",
+          "oklch(26% 0.1285 29.3)",
+          "oklch(38% 0.1285 29.3)",
+          "oklch(49% 0.1285 29.3)",
+          "oklch(61% 0.1285 29.3)",
+          "oklch(72% 0.1285 29.3)",
+          "oklch(84% 0.1285 29.3)",
+          "oklch(95% 0.1285 29.3)"
+        ]
+      },
+      "error-surface": {
+        "role": "semantic",
+        "displayName": "Error Surface",
+        "tonalRamp": [
+          "oklch(15% 0.0187 38.2)",
+          "oklch(26% 0.0187 38.2)",
+          "oklch(38% 0.0187 38.2)",
+          "oklch(49% 0.0187 38.2)",
+          "oklch(61% 0.0187 38.2)",
+          "oklch(72% 0.0187 38.2)",
+          "oklch(84% 0.0187 38.2)",
+          "oklch(95% 0.0187 38.2)"
+        ]
+      },
+      "success-text": {
+        "role": "semantic",
+        "displayName": "Success Text",
+        "tonalRamp": [
+          "oklch(15% 0.0735 153.0)",
+          "oklch(26% 0.0735 153.0)",
+          "oklch(38% 0.0735 153.0)",
+          "oklch(49% 0.0735 153.0)",
+          "oklch(61% 0.0735 153.0)",
+          "oklch(72% 0.0735 153.0)",
+          "oklch(84% 0.0735 153.0)",
+          "oklch(95% 0.0735 153.0)"
+        ]
+      },
+      "success-surface": {
+        "role": "semantic",
+        "displayName": "Success Surface",
+        "tonalRamp": [
+          "oklch(15% 0.0271 140.2)",
+          "oklch(26% 0.0271 140.2)",
+          "oklch(38% 0.0271 140.2)",
+          "oklch(49% 0.0271 140.2)",
+          "oklch(61% 0.0271 140.2)",
+          "oklch(72% 0.0271 140.2)",
+          "oklch(84% 0.0271 140.2)",
+          "oklch(95% 0.0271 140.2)"
+        ]
+      },
+      "warning-text": {
+        "role": "semantic",
+        "displayName": "Warning Text",
+        "tonalRamp": [
+          "oklch(15% 0.0762 89.8)",
+          "oklch(26% 0.0762 89.8)",
+          "oklch(38% 0.0762 89.8)",
+          "oklch(49% 0.0762 89.8)",
+          "oklch(61% 0.0762 89.8)",
+          "oklch(72% 0.0762 89.8)",
+          "oklch(84% 0.0762 89.8)",
+          "oklch(95% 0.0762 89.8)"
+        ]
+      },
+      "media": {
+        "role": "neutral",
+        "displayName": "Media",
+        "tonalRamp": [
+          "oklch(15% 0.0293 165.7)",
+          "oklch(26% 0.0293 165.7)",
+          "oklch(38% 0.0293 165.7)",
+          "oklch(49% 0.0293 165.7)",
+          "oklch(61% 0.0293 165.7)",
+          "oklch(72% 0.0293 165.7)",
+          "oklch(84% 0.0293 165.7)",
+          "oklch(95% 0.0293 165.7)"
+        ]
+      },
+      "media-label": {
+        "role": "neutral",
+        "displayName": "Media Label",
+        "tonalRamp": [
+          "oklch(15% 0.0464 168.5)",
+          "oklch(26% 0.0464 168.5)",
+          "oklch(38% 0.0464 168.5)",
+          "oklch(49% 0.0464 168.5)",
+          "oklch(61% 0.0464 168.5)",
+          "oklch(72% 0.0464 168.5)",
+          "oklch(84% 0.0464 168.5)",
+          "oklch(95% 0.0464 168.5)"
+        ]
+      },
+      "media-label-text": {
+        "role": "neutral",
+        "displayName": "Media Label Text",
+        "tonalRamp": [
+          "oklch(15% 0.0191 140.5)",
+          "oklch(26% 0.0191 140.5)",
+          "oklch(38% 0.0191 140.5)",
+          "oklch(49% 0.0191 140.5)",
+          "oklch(61% 0.0191 140.5)",
+          "oklch(72% 0.0191 140.5)",
+          "oklch(84% 0.0191 140.5)",
+          "oklch(95% 0.0191 140.5)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Public Display",
+        "purpose": "Home opening heading."
+      },
+      "display-mobile": {
+        "displayName": "Mobile Display",
+        "purpose": "Home heading at maximum width 600px."
+      },
+      "headline": {
+        "displayName": "Public Headline",
+        "purpose": "Major reading-section headings."
+      },
+      "studio-headline": {
+        "displayName": "Studio Headline",
+        "purpose": "Task titles; responsive overrides are documented in DESIGN.md."
+      },
+      "title": {
+        "displayName": "Interface Title",
+        "purpose": "Third-level headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Reading copy, scripts, and explanations."
+      },
+      "label": {
+        "displayName": "Field Label",
+        "purpose": "Visible labels and mode legend."
+      },
+      "button": {
+        "displayName": "Button",
+        "purpose": "Primary, secondary, and stop controls."
+      },
+      "metric": {
+        "displayName": "Metric",
+        "purpose": "Tabular review metrics."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Shared control and review switch easing."
+      },
+      {
+        "name": "button-state",
+        "value": "180ms",
+        "purpose": "Background, color, and pressed-position transition."
+      },
+      {
+        "name": "field-border",
+        "value": "180ms",
+        "purpose": "Input, textarea, and select border transition."
+      },
+      {
+        "name": "review-switch",
+        "value": "220ms",
+        "purpose": "Illustrative review copy moves from translateY(5px) to translateY(0)."
+      },
+      {
+        "name": "score-meter",
+        "value": "300ms",
+        "purpose": "Transform-only score meter updates."
+      },
+      {
+        "name": "processing-spin",
+        "value": "750ms linear infinite",
+        "purpose": "Spinner rotation for a running task."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Disable all animation and transitions; use automatic scroll behavior."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "workspace-tight",
+        "value": "1280px"
+      },
+      {
+        "name": "split-stack",
+        "value": "1050px"
+      },
+      {
+        "name": "studio-topnav",
+        "value": "800px"
+      },
+      {
+        "name": "mobile",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A direct studio action with visible focus, hover, pressed, and disabled states.",
+      "html": "<button class=\"ds-primary\">Set up my recording<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></button>",
+      "css": ".ds-primary{font-family:'Source Sans 3 Variable','Segoe UI',sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:11px 19px;border:1px solid transparent;border-radius:8px;font-weight:600;font-size:.93rem;background:var(--green,#194c3d);color:#fff;cursor:pointer;transition:background 180ms var(--ease,cubic-bezier(.16,1,.3,1)),color 180ms var(--ease,cubic-bezier(.16,1,.3,1)),transform 180ms var(--ease,cubic-bezier(.16,1,.3,1))}.ds-primary:hover:not(:disabled){background:#103b2e;border-color:transparent}.ds-primary:active:not(:disabled){transform:translateY(1px)}.ds-primary:focus-visible{outline:3px solid var(--focus,#39795c);outline-offset:4px;}.ds-primary:disabled{cursor:not-allowed;opacity:.52}@media(prefers-reduced-motion:reduce){[class^=\"ds-\"]{animation:none!important;transition:none!important}}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A direct studio action with visible focus, hover, pressed, and disabled states.",
+      "html": "<button class=\"ds-secondary\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11\"/><rect x=\"2\" y=\"6\" width=\"14\" height=\"12\" rx=\"2\"/></svg>Enable camera &amp; microphone</button>",
+      "css": ".ds-secondary{font-family:'Source Sans 3 Variable','Segoe UI',sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:11px 19px;border:1px solid var(--line,#d8dfd7);border-radius:8px;font-weight:600;font-size:.93rem;background:#fff;color:var(--ink,#172d27);cursor:pointer;transition:background 180ms var(--ease,cubic-bezier(.16,1,.3,1)),color 180ms var(--ease,cubic-bezier(.16,1,.3,1)),transform 180ms var(--ease,cubic-bezier(.16,1,.3,1))}.ds-secondary:hover:not(:disabled){background:var(--surface,#eef2ec);border-color:#9bac9f}.ds-secondary:active:not(:disabled){transform:translateY(1px)}.ds-secondary:focus-visible{outline:3px solid var(--focus,#39795c);outline-offset:4px;}.ds-secondary:disabled{cursor:not-allowed;opacity:.52}@media(prefers-reduced-motion:reduce){[class^=\"ds-\"]{animation:none!important;transition:none!important}}"
+    },
+    {
+      "name": "Stop Button",
+      "kind": "button",
+      "refersTo": "button-stop",
+      "description": "A direct studio action with visible focus, hover, pressed, and disabled states.",
+      "html": "<button class=\"ds-stop\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/></svg>Finish practice</button>",
+      "css": ".ds-stop{font-family:'Source Sans 3 Variable','Segoe UI',sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:11px 19px;border:1px solid transparent;border-radius:8px;font-weight:600;font-size:.93rem;background:var(--red,#9e342c);color:#fff;cursor:pointer;transition:background 180ms var(--ease,cubic-bezier(.16,1,.3,1)),color 180ms var(--ease,cubic-bezier(.16,1,.3,1)),transform 180ms var(--ease,cubic-bezier(.16,1,.3,1))}.ds-stop:hover:not(:disabled){background:#7f251f;border-color:transparent}.ds-stop:active:not(:disabled){transform:translateY(1px)}.ds-stop:focus-visible{outline:3px solid var(--focus,#39795c);outline-offset:4px;}.ds-stop:disabled{cursor:not-allowed;opacity:.52}@media(prefers-reduced-motion:reduce){[class^=\"ds-\"]{animation:none!important;transition:none!important}}"
+    },
+    {
+      "name": "Text Button",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "An underlined return or cancellation action.",
+      "html": "<button class=\"ds-text\">Back to script</button>",
+      "css": ".ds-text{font-family:'Source Sans 3 Variable','Segoe UI',sans-serif;background:transparent;color:var(--green,#194c3d);font-size:.95rem;font-weight:600;padding:12px 4px;border:0;text-decoration:underline;text-underline-offset:4px;cursor:pointer}.ds-text:hover{color:#0c3023}.ds-text:focus-visible{outline:3px solid var(--focus,#39795c);outline-offset:4px;}.ds-text:disabled{cursor:not-allowed;opacity:.52}"
+    },
+    {
+      "name": "Labeled Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "A visible label and readable field with strengthened border and keyboard focus.",
+      "html": "<label class=\"ds-field\">What would you like to talk about?<input class=\"ds-input\" placeholder=\"Something I learned outside the classroom\"></label>",
+      "css": ".ds-field{font-family:'Source Sans 3 Variable','Segoe UI',sans-serif;display:grid;gap:8px;font-size:.9rem;font-weight:600;color:var(--ink,#172d27)}.ds-input{font-family:'Source Sans 3 Variable','Segoe UI',sans-serif;font-size:1rem;font-weight:400;width:100%;border:1px solid #aebdaf;border-radius:7px;padding:11px 13px;background:#fff;color:var(--ink,#172d27);transition:border-color 180ms}.ds-input::placeholder{color:#617466}.ds-input:hover{border-color:#6e8876}.ds-input:focus{border-color:var(--green,#194c3d)}.ds-input:focus-visible{outline:3px solid var(--focus,#39795c);outline-offset:4px;}.ds-input:disabled{background:var(--surface,#eef2ec)}@media(prefers-reduced-motion:reduce){[class^=\"ds-\"]{animation:none!important;transition:none!important}}"
+    },
+    {
+      "name": "Public Navigation",
+      "kind": "nav",
+      "refersTo": "navigation-link",
+      "description": "Quiet public links; the current page uses pine and an underline.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Main navigation\"><a class=\"ds-nav-link\" href=\"#home\" aria-current=\"page\">Home</a><a class=\"ds-nav-link\" href=\"#how-it-works\">How it works</a><a class=\"ds-nav-link\" href=\"#about\">About us</a></nav>",
+      "css": ".ds-nav{display:flex;flex-wrap:wrap;gap:32px}.ds-nav-link{font-family:'Source Sans 3 Variable','Segoe UI',sans-serif;font-size:.94rem;text-decoration:none;color:var(--muted,#57675e);padding:10px 0}.ds-nav-link:hover,.ds-nav-link[aria-current]{color:var(--green,#194c3d)}.ds-nav-link[aria-current]{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:9px}.ds-nav-link:focus-visible{outline:3px solid var(--focus,#39795c);outline-offset:4px;}@media(max-width:600px){.ds-nav{gap:25px}.ds-nav-link{display:inline-flex;align-items:center;min-height:44px;font-size:.86rem}}"
+    },
+    {
+      "name": "Evidence Link",
+      "kind": "chip",
+      "refersTo": "evidence-link",
+      "description": "A timestamp action linking a supported observation to playback.",
+      "html": "<button class=\"ds-evidence\">At 00:42</button>",
+      "css": ".ds-evidence{font-family:'Source Sans 3 Variable','Segoe UI',sans-serif;background:var(--mint,#dbefdf);color:var(--green,#194c3d);border:0;border-radius:5px;padding:6px 10px;font-size:.8rem;cursor:pointer}.ds-evidence:hover{background:#c6dfca}.ds-evidence:focus-visible{outline:3px solid var(--focus,#39795c);outline-offset:4px;}.ds-evidence:disabled{cursor:not-allowed;opacity:.52}"
+    },
+    {
+      "name": "Working Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "A flat white working surface separated by a fine border.",
+      "html": "<section class=\"ds-panel\"><h3 class=\"ds-panel-title\">Make room for your own voice.</h3><p class=\"ds-panel-copy\">Read your draft out loud once. Change any phrase you would not naturally say.</p></section>",
+      "css": ".ds-panel{font-family:'Source Sans 3 Variable','Segoe UI',sans-serif;font-size:1rem;padding:26px;border:1px solid var(--line,#d8dfd7);border-radius:var(--radius,12px);background:#fff;color:var(--ink,#172d27)}.ds-panel-title{margin:0;font-size:1.2rem;font-weight:650;line-height:1.4}.ds-panel-copy{margin:16px 0 0;color:var(--muted,#57675e);line-height:1.65}@media(max-width:600px){.ds-panel{padding:20px}}"
+    },
+    {
+      "name": "Score Evidence State",
+      "kind": "custom",
+      "refersTo": "score-panel",
+      "description": "The initial score state displays no number while evidence is collected.",
+      "html": "<section class=\"ds-score\"><p class=\"ds-score-label\">Live practice score</p><div class=\"ds-score-value\"><strong>?</strong><span>Collecting evidence</span></div><div class=\"ds-score-meter\" aria-hidden=\"true\"><span></span></div><p class=\"ds-score-explanation\">A score appears when speech and posture provide enough usable evidence.</p></section>",
+      "css": ".ds-score{font-family:'Source Sans 3 Variable','Segoe UI',sans-serif;background:var(--mint,#dbefdf);color:var(--ink,#172d27);border-radius:var(--radius,12px);padding:25px}.ds-score-label{margin:0;color:var(--muted,#57675e);font-size:.82rem;font-weight:600}.ds-score-value{display:flex;align-items:baseline;gap:10px;margin:12px 0}.ds-score-value strong{font-size:2.7rem;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}.ds-score-value span{font-size:.75rem;color:#415b49}.ds-score-meter{height:4px;background:#bad4bf;margin-bottom:14px;overflow:hidden}.ds-score-meter span{display:block;width:100%;height:100%;background:var(--green,#194c3d);transform:scaleX(0);transform-origin:left;transition:transform 300ms}.ds-score-explanation{margin:0;font-size:.82rem;color:#415b49;line-height:1.65}@media(prefers-reduced-motion:reduce){[class^=\"ds-\"]{animation:none!important;transition:none!important}}"
+    },
+    {
+      "name": "Review Explorer Tabs",
+      "kind": "nav",
+      "refersTo": "review-tab",
+      "description": "Mint marks the selected illustrative perspective; actual app implements roving focus and keyboard switching.",
+      "html": "<div class=\"ds-review-tabs\" role=\"tablist\" aria-label=\"Explore review stages\"><button class=\"ds-review-tab\" role=\"tab\" aria-selected=\"true\">Listen</button><button class=\"ds-review-tab\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">Watch</button><button class=\"ds-review-tab\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">Reflect</button></div>",
+      "css": ".ds-review-tabs{display:flex;gap:5px}.ds-review-tab{font-family:'Source Sans 3 Variable','Segoe UI',sans-serif;display:flex;align-items:center;gap:8px;background:transparent;border:0;padding:10px 16px;border-radius:6px;color:var(--muted,#57675e);font-size:.9rem;cursor:pointer}.ds-review-tab[aria-selected=\"true\"]{color:var(--green,#194c3d);background:var(--mint,#dbefdf);font-weight:600}.ds-review-tab:hover{background:var(--surface,#eef2ec)}.ds-review-tab:focus-visible{outline:3px solid var(--focus,#39795c);outline-offset:4px;}@media(max-width:600px){.ds-review-tab{flex:1;justify-content:center;padding:10px;font-size:.85rem}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Campus arts festival identity",
+    "overview": "Generous geometric lettering, strong pine fields, and clear program-like sequencing give Stagecraft a recognizable public voice. The studio carries that identity into quiet, light task surfaces where writing, recording, and reflection stay readable. The owner chose direct implementation in code; this document captures the finished implementation rather than a separate approved comp.\n\nThe system is minimal, elegant, and approachable for students and everyday speaking practice. Solid color, restrained corners, thin dividers, and clear state changes do the visual work. There is no decorative glass, gradient treatment, or shipping raster artwork; self-hosted fonts, the SVG favicon, and Lucide SVG icons support the interface.",
+    "keyCharacteristics": [
+      "Geometric Sora headings paired with readable Source Sans 3 interface text.",
+      "Pine identity fields with mint emphasis and neutral working surfaces.",
+      "Flat panels, thin borders, and restrained corners.",
+      "Responsive task layouts with explicit evidence and privacy states."
+    ],
+    "rules": [
+      {
+        "name": "The State Color Rule",
+        "body": "Keep pine and mint attached to identity, actions, selection, and supported observations. Use red for stop/error states, and accompany state color with readable text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Voices Rule",
+        "body": "Use Sora for major headings and the wordmark, and Source Sans 3 for work, evidence, and controls. Do not turn small interface text into display typography.",
+        "section": "typography"
+      },
+      {
+        "name": "The Solid Surface Rule",
+        "body": "Establish hierarchy with color, spacing, and dividers. Do not add glass, unnecessary gradients, or decorative shadows to functional surfaces.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep Sora headings and Source Sans 3 work text in their established roles.",
+      "**Do** use flat solid surfaces, fine borders, and the established corner hierarchy.",
+      "**Do** preserve visible focus, labeled fields, current-step cues, and reduced-motion behavior.",
+      "**Do** show evidence availability, provisional scores, and local/cloud choices in readable text.",
+      "**Do** let task layouts stack while retaining the primary action and supported playback."
+    ],
+    "donts": [
+      "**Don't** add decorative glass, unnecessary gradients, or decorative shadows.",
+      "**Don't** present illustrative excerpts as actual AI reviews or invent customer claims.",
+      "**Don't** substitute a confidence judgment or invented number for missing evidence.",
+      "**Don't** imply cloud processing is enabled before configuration and explicit media consent.",
+      "**Don't** introduce raster hero artwork or new typography when extending this visual world."
+    ]
+  }
+}

@@ -15,7 +15,6 @@ test('manual script, real browser capture, offline reviews, muted video, and res
   await expect(page.getByRole('button', { name: 'Start practice' })).toBeDisabled();
   await page.getByRole('button', { name: 'Enable camera & microphone' }).click();
   await expect(page.locator('#camera-status')).toContainText('loaded', { timeout: 20000 });
-  await page.locator('#consent').check();
   await page.getByRole('button', { name: 'Start practice' }).click();
   await expect(page.getByRole('button', { name: 'Finish practice' })).toBeVisible();
   await expect(page.locator('#timer')).not.toHaveText('00:00', { timeout: 8000 });
@@ -131,7 +130,7 @@ test('landing page review explorer, FAQ, and mobile about page are usable', asyn
     .getByRole('link', { name: 'Home', exact: true })
     .click();
   expect(
-    await page.locator('.note-voice').evaluate((el) => getComputedStyle(el).animationName),
+    await page.locator('.hero-copy').evaluate((el) => getComputedStyle(el).animationName),
   ).toBe('none');
 });
 

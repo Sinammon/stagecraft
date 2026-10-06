@@ -12,9 +12,9 @@ import { analysisSchema, scriptSchema, chatSchema, validateWav } from './validat
 import { finalScore, postureCoverage } from '../shared/scoring.js';
 
 export async function buildApp({
-  provider = new GeminiProvider(),
   store = new SessionStore(),
   env = process.env,
+  provider = new GeminiProvider(env),
   serveStatic = true,
 } = {}) {
   const app = Fastify({ logger: false, bodyLimit: 4 * 1024 * 1024 });
@@ -25,11 +25,9 @@ export async function buildApp({
   });
   await app.register(websocket, { options: { maxPayload: 40000 } });
   const rate = new Map();
-  const allowedOrigins = new Set([
-    env.APP_ORIGIN || 'http://localhost:3000',
-    'http://127.0.0.1:3000',
-  ]);
+  const allowedOrigins = new Set([env.APP_ORIGIN || 'http://localhost:3000']);
   if (env.NODE_ENV !== 'production') {
+    allowedOrigins.add('http://127.0.0.1:3000');
     allowedOrigins.add('http://127.0.0.1:5173');
     allowedOrigins.add('http://localhost:5173');
   }
@@ -46,7 +44,11 @@ export async function buildApp({
     reply
       .header('X-Content-Type-Options', 'nosniff')
       .header('Referrer-Policy', 'same-origin')
-      .header('Permissions-Policy', 'camera=(self), microphone=(self)');
+      .header('Permissions-Policy', 'camera=(self), microphone=(self)')
+      .header(
+        'Content-Security-Policy',
+        "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+      );
     if (!request.url.startsWith('/api/')) return;
     reply.header('Cache-Control', 'no-store');
     if (request.headers.origin && !allowedOrigins.has(request.headers.origin))
@@ -80,6 +82,10 @@ export async function buildApp({
   app.setErrorHandler((error, request, reply) => {
     if (error.name === 'ZodError')
       return reply.code(400).send({ error: 'The request contains invalid or oversized data.' });
+    if (error.statusCode === 413)
+      return reply
+        .code(413)
+        .send({ error: 'This recording is too large. Use a practice of five minutes or less.' });
     reply.code(error.statusCode || 500).send({
       error:
         error.statusCode && error.statusCode < 500 ? error.message : publicProviderError(error),
@@ -115,7 +121,9 @@ export async function buildApp({
       httpOnly: true,
       sameSite: 'strict',
       path: '/',
-      secure: env.SECURE_COOKIES === 'true',
+      secure:
+        env.SECURE_COOKIES === 'true' ||
+        (env.NODE_ENV === 'production' && env.SECURE_COOKIES !== 'false'),
       maxAge: 7200,
     });
     const s = store.create(owner);
@@ -178,6 +186,12 @@ export async function buildApp({
     }
     s.status = 'processing';
     s.error = null;
+    s.report.stageStatus = Object.fromEntries(
+      ['transcript', 'audio', 'video', 'combined'].map((key) => [
+        key,
+        (key === 'transcript' ? s.transcript : s.report.stages[key]) ? 'complete' : 'waiting',
+      ]),
+    );
     s.jobId ||= randomUUID();
     // A retry reuses completed stages and canonical transcription. Raw media never enters the report store.
     activeJobs++;
@@ -192,17 +206,32 @@ export async function buildApp({
     const signal = s.abort.signal;
     try {
       signal.throwIfAborted();
-      file = await provider.upload(audio);
+      file = await provider.upload(audio, signal);
+      if (!file?.uri || !file?.name) throw new Error('Incomplete provider upload.');
       signal.throwIfAborted();
       const errors = [];
+      const attempt = async (key, action) => {
+        s.report.stageStatus[key] = 'running';
+        try {
+          const result = await action();
+          s.report.stageStatus[key] = 'complete';
+          return result;
+        } catch (error) {
+          s.report.stageStatus[key] = 'failed';
+          throw error;
+        }
+      };
       if (!s.transcript) {
         try {
-          s.transcript = await provider.transcribe(file, signal, payload.durationMs);
+          s.transcript = await attempt('transcript', () =>
+            provider.transcribe(file, signal, payload.durationMs),
+          );
         } catch (e) {
           if (signal.aborted) throw e;
           errors.push(publicProviderError(e));
         }
       }
+      if (!s.transcript) s.report.stageStatus.audio = 'skipped';
       const scoring = finalScore({
         words: s.transcript?.words || [],
         poseSamples: payload.poseSamples,
@@ -230,17 +259,19 @@ export async function buildApp({
       if (s.transcript && !s.report.stages.audio) {
         try {
           const { postureDeviationPercent, ...speechMetrics } = scoring.metrics;
-          s.report.stages.audio = await provider.review(
-            'audio',
-            {
-              transcript: s.transcript.text,
-              durationMs: payload.durationMs,
-              metrics: speechMetrics,
-              acoustics: payload.acoustics,
-              evidence: evidence.filter((e) => ['filler', 'pause'].includes(e.category)),
-            },
-            [{ type: 'audio', uri: file.uri, mime_type: file.mimeType || 'audio/wav' }],
-            signal,
+          s.report.stages.audio = await attempt('audio', () =>
+            provider.review(
+              'audio',
+              {
+                transcript: s.transcript.text,
+                durationMs: payload.durationMs,
+                metrics: speechMetrics,
+                acoustics: payload.acoustics,
+                evidence: evidence.filter((e) => ['filler', 'pause'].includes(e.category)),
+              },
+              [{ type: 'audio', uri: file.uri, mime_type: file.mimeType || 'audio/wav' }],
+              signal,
+            ),
           );
         } catch (e) {
           if (signal.aborted) throw e;
@@ -249,21 +280,23 @@ export async function buildApp({
       }
       if (!s.report.stages.video) {
         try {
-          s.report.stages.video = await provider.review(
-            'video',
-            {
-              mode: payload.mode,
-              trackingCoverage: s.report.visualMetrics.coverage,
-              deviationPercent: s.report.visualMetrics.deviationPercent,
-              evidence: evidence.filter((e) => ['posture', 'frame'].includes(e.category)),
-              frameTimesMs: payload.frames.map((f) => f.timeMs),
-            },
-            payload.frames.map((f) => ({
-              type: 'image',
-              data: f.data.split(',')[1],
-              mime_type: 'image/jpeg',
-            })),
-            signal,
+          s.report.stages.video = await attempt('video', () =>
+            provider.review(
+              'video',
+              {
+                mode: payload.mode,
+                trackingCoverage: s.report.visualMetrics.coverage,
+                deviationPercent: s.report.visualMetrics.deviationPercent,
+                evidence: evidence.filter((e) => ['posture', 'frame'].includes(e.category)),
+                frameTimesMs: payload.frames.map((f) => f.timeMs),
+              },
+              payload.frames.map((f) => ({
+                type: 'image',
+                data: f.data.split(',')[1],
+                mime_type: 'image/jpeg',
+              })),
+              signal,
+            ),
           );
         } catch (e) {
           if (signal.aborted) throw e;
@@ -272,23 +305,27 @@ export async function buildApp({
       }
       if (s.report.stages.audio && s.report.stages.video && !s.report.stages.combined) {
         try {
-          s.report.stages.combined = await provider.review(
-            'combined',
-            {
-              audio: s.report.stages.audio,
-              video: s.report.stages.video,
-              score: scoring.score,
-              penalties: scoring.penalties,
-              evidence,
-            },
-            [],
-            signal,
+          s.report.stages.combined = await attempt('combined', () =>
+            provider.review(
+              'combined',
+              {
+                audio: s.report.stages.audio,
+                video: s.report.stages.video,
+                score: scoring.score,
+                penalties: scoring.penalties,
+                evidence,
+              },
+              [],
+              signal,
+            ),
           );
         } catch (e) {
           if (signal.aborted) throw e;
           errors.push(publicProviderError(e));
         }
       }
+      if (!s.report.stages.audio || !s.report.stages.video)
+        s.report.stageStatus.combined = 'skipped';
       signal.throwIfAborted();
       outcome = errors.length ? 'partial' : 'complete';
       s.error = errors[0] || null;
@@ -337,7 +374,10 @@ export async function buildApp({
     try {
       for await (const text of provider.chat(s, message, controller.signal)) {
         answer += text;
-        if (answer.length > 12000) break;
+        if (answer.length > 12000) {
+          controller.abort();
+          throw new Error('The coaching reply exceeded the response limit.');
+        }
         reply.raw.write(`${JSON.stringify({ text })}\n`);
       }
       if (!answer.trim()) throw new Error('Empty coaching reply.');
