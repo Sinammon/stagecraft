@@ -26,6 +26,14 @@ export async function buildApp({
   await app.register(websocket, { options: { maxPayload: 40000 } });
   const rate = new Map();
   const allowedOrigins = new Set([env.APP_ORIGIN || 'http://localhost:3000']);
+  const addOrigin = (value) => {
+    if (!value) return;
+    allowedOrigins.add(value.startsWith('http') ? value : `https://${value}`);
+  };
+  addOrigin(env.APP_ORIGIN);
+  addOrigin(env.VERCEL_URL);
+  addOrigin(env.VERCEL_BRANCH_URL);
+  addOrigin(env.VERCEL_PROJECT_PRODUCTION_URL);
   if (env.NODE_ENV !== 'production') {
     allowedOrigins.add('http://127.0.0.1:3000');
     allowedOrigins.add('http://127.0.0.1:5173');

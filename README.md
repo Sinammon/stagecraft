@@ -101,7 +101,9 @@ Real-device and credentialed Gemini checks are still required before a public re
 
 ## Deploy
 
-Use the included Dockerfile for a continuously running single Node service, with a reverse proxy/platform providing HTTPS and WebSocket support. Set `HOST=0.0.0.0`, `APP_ORIGIN` to the exact HTTPS origin, `SECURE_COOKIES=true`, and server-side Gemini secrets. The server trusts only the configured origin in production. Background jobs, in-memory sessions, and live WebSockets require a persistent backend; a frontend-only or serverless Vercel deployment is insufficient. No public deployment has been verified by the local setup.
+For Vercel, import this repository with the project root unchanged. The root `server.mjs` entrypoint exposes the Fastify API and serves the Vite build, and the build command downloads the local MediaPipe assets before compiling the frontend. Add `GEMINI_API_KEY` to the Vercel Project Environment Variables for both Preview and Production, then redeploy; environment-variable changes do not affect an existing deployment. Vercel's `VERCEL_URL`, `VERCEL_BRANCH_URL`, and `VERCEL_PROJECT_PRODUCTION_URL` are accepted automatically for API origin checks. Set `APP_ORIGIN` to the exact public HTTPS origin when using a custom domain.
+
+The Vercel deployment supports draft generation and the request/response analysis routes. Live transcription uses a WebSocket and may require a persistent Node host with WebSocket support; the app falls back to final local audio analysis when live transcription is unavailable. For the full five-minute, stateful experience, use the included Dockerfile with a reverse proxy/platform providing HTTPS and WebSocket support. Set `HOST=0.0.0.0`, `APP_ORIGIN` to the exact HTTPS origin, `SECURE_COOKIES=true`, and server-side Gemini secrets. Background jobs, in-memory sessions, and live WebSockets require a persistent backend; a frontend-only or serverless deployment is insufficient for the full experience. No public deployment or upload is performed by the local setup.
 
 ```powershell
 docker build -t stagecraft .
