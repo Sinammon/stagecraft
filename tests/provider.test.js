@@ -33,6 +33,37 @@ describe('Gemini adapter', () => {
     });
     expect(seconds('broken')).toBeNaN();
   });
+  it('normalizes duration objects and millisecond offsets', () => {
+    expect(seconds({ seconds: 1, nanos: 250000000 })).toBe(1250);
+    expect(seconds('1250ms')).toBe(1250);
+    expect(
+      extractTranscript(
+        {
+          output_text: 'hello world',
+          steps: [
+            {
+              type: 'model_output',
+              content: [
+                {
+                  annotations: [
+                    { type: 'word_info', text: 'hello', start_offset: '0ms', end_offset: '400ms' },
+                    { type: 'word_info', text: 'bad', start_offset: 'broken', end_offset: '500ms' },
+                    {
+                      type: 'word_info',
+                      text: 'world',
+                      start_offset: '500ms',
+                      end_offset: '900ms',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        1000,
+      ).words,
+    ).toHaveLength(2);
+  });
   it('rejects transcription without word timing instead of manufacturing evidence', () => {
     expect(() => extractTranscript({ output_text: 'hello', steps: [] })).toThrow(/word timestamps/);
   });

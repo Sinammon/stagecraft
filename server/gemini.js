@@ -6,48 +6,73 @@ import { reviewSchema } from '../shared/reports.js';
 export const reportSchema = reviewSchema;
 const jsonSchema = z.toJSONSchema(reportSchema);
 delete jsonSchema.$schema;
-export const seconds = (value) =>
-  typeof value === 'number'
-    ? value * 1000
-    : /^\d+(\.\d+)?s$/.test(value ?? '')
-      ? parseFloat(value) * 1000
-      : NaN;
+export const seconds = (value) => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value * 1000 : NaN;
+  if (typeof value === 'string') {
+    const match = value.trim().match(/^(-?\d+(?:\.\d+)?)(ms|s|m)$/i);
+    if (!match) return NaN;
+    const amount = Number(match[1]);
+    return match[2].toLowerCase() === 'ms'
+      ? amount
+      : match[2].toLowerCase() === 'm'
+        ? amount * 60000
+        : amount * 1000;
+  }
+  if (value && typeof value === 'object') {
+    if (Number.isFinite(value.seconds) || Number.isFinite(value.nanos))
+      return Number(value.seconds || 0) * 1000 + Number(value.nanos || 0) / 1e6;
+    if (Number.isFinite(value.milliseconds)) return Number(value.milliseconds);
+    if (Number.isFinite(value.micros)) return Number(value.micros) / 1000;
+  }
+  return NaN;
+};
 export function extractTranscript(interaction, durationMs = Infinity) {
   const content = (interaction.steps ?? [])
     .filter((s) => s.type === 'model_output')
     .flatMap((s) => s.content ?? []);
   const text = outputText(interaction);
-  const words = content
+  const annotations = content
     .flatMap((c) => c.annotations ?? [])
-    .filter((a) => a.type === 'word_info')
-    .map((a) => ({ text: a.text, startMs: seconds(a.start_offset), endMs: seconds(a.end_offset) }));
-  if (!words.length)
+    .filter((a) => a.type === 'word_info');
+  if (!annotations.length)
     throw Object.assign(
       new Error(
         'Gemini returned no word timestamps. Audio feedback is available only after a valid transcription; retry analysis.',
       ),
       { code: 'TIMESTAMPS_UNAVAILABLE' },
     );
-  let previous = -1;
-  for (const word of words) {
-    if (
-      typeof word.text !== 'string' ||
-      !word.text.trim() ||
-      !Number.isFinite(word.startMs) ||
-      !Number.isFinite(word.endMs) ||
-      word.startMs < 0 ||
-      word.endMs <= word.startMs ||
-      word.startMs < previous ||
-      word.endMs > durationMs + 250
+  const words = annotations
+    .map((a) => ({
+      text: typeof a.text === 'string' ? a.text.trim() : '',
+      startMs: seconds(a.start_offset),
+      endMs: seconds(a.end_offset),
+    }))
+    .filter(
+      (word) =>
+        word.text &&
+        Number.isFinite(word.startMs) &&
+        Number.isFinite(word.endMs) &&
+        word.startMs >= 0 &&
+        word.endMs > word.startMs &&
+        word.endMs <= durationMs + 250,
     )
-      throw Object.assign(
-        new Error(
-          'Gemini returned invalid word timing. Retry analysis; no score was calculated from this response.',
-        ),
-        { code: 'TIMESTAMPS_UNAVAILABLE' },
+    .sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs)
+    .filter((word, index, all) => {
+      const previous = all[index - 1];
+      return (
+        !previous ||
+        previous.startMs !== word.startMs ||
+        previous.endMs !== word.endMs ||
+        previous.text !== word.text
       );
-    previous = word.startMs;
-  }
+    });
+  if (!words.length)
+    throw Object.assign(
+      new Error(
+        'Gemini returned invalid word timing. Retry analysis; no score was calculated from this response.',
+      ),
+      { code: 'TIMESTAMPS_UNAVAILABLE' },
+    );
   const transcriptWords = text.trim().split(/\s+/).filter(Boolean).length;
   if (transcriptWords && words.length / transcriptWords < 0.8)
     throw Object.assign(
