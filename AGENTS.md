@@ -22,15 +22,15 @@ Trace changes through the relevant UI, API, validation, and shared logic before 
 
 Run commands from this repository root. Requires Node.js 22.12+ and pnpm.
 
-| Task | Command |
-| --- | --- |
-| Install dependencies | `pnpm install` |
+| Task                                      | Command                |
+| ----------------------------------------- | ---------------------- |
+| Install dependencies                      | `pnpm install`         |
 | Download the pose model and matching WASM | `pnpm models:download` |
-| Start development servers | `pnpm dev` |
-| Build the frontend into `dist/` | `pnpm build` |
-| Start the production server locally | `pnpm start` |
-| Run unit and backend tests | `pnpm test` |
-| Run browser tests | `pnpm test:e2e` |
+| Start development servers                 | `pnpm dev`             |
+| Build the frontend into `dist/`           | `pnpm build`           |
+| Start the production server locally       | `pnpm start`           |
+| Run unit and backend tests                | `pnpm test`            |
+| Run browser tests                         | `pnpm test:e2e`        |
 
 Copy `.env.example` to `.env` when configuring local AI features. Keep secrets in the server environment; never put them in frontend code or variables prefixed with `VITE_`. Recording and playback work without a Gemini key; AI features need a configured key and available quota.
 
@@ -38,7 +38,7 @@ Development runs Vite on port 5173 and Fastify on port 3000. Vite proxies `/api`
 
 ## Deployment on Vercel
 
-The project is deployed using Vercel. The current repository has no Vercel configuration, so inspect the Vercel project settings and deployment setup before changing production behavior. The README's Docker instructions describe a single-service deployment and may not match the Vercel setup.
+The project is deployed using Vercel. There is no `vercel.json` or linked `.vercel` project in the repository, but there are `server.mjs` and `api/` entrypoints. Read [DEPLOYMENT.md](DEPLOYMENT.md) for the source trace and observed public deployment failures. Inspect the private Vercel project settings and logs before changing production routing. The README's Docker instructions describe a single-service deployment and may not match the Vercel setup.
 
 - The built frontend expects same-origin `/api` routes and session cookies. Vite's proxy applies only during development.
 - Check how the deployed backend handles API routes, transcription WebSockets, streamed chat, and analysis jobs before changing those paths.

@@ -8,13 +8,15 @@ web
 
 ## Users
 
-Students and people practicing everyday speaking. They prepare class presentations, explain ideas,
-and rehearse conversations without an audience watching. Audience confirmed by the project owner.
+Primary: students preparing class presentations, seminar contributions, and group project pitches.
+Secondary: anyone rehearsing a short talk, introduction, or idea without an audience watching.
+Keep the invitation welcoming beyond campus. Audience confirmed by the project owner.
 
 ## Product Purpose
 
 A browser-first speaking practice studio: prepare a script, record up to five minutes, listen without
-video, watch without audio, then combine the observations into one practical next step.
+video, watch without audio, then combine the observations into one practical next step. An editable focus stays with the
+script between takes and across reloads in the current tab.
 
 ## Capabilities and Constraints
 

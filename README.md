@@ -1,6 +1,6 @@
 # Stagecraft
 
-A speaking practice studio for students and everyday conversations, built with HTML, CSS, JavaScript, MediaPipe, Fastify, and Gemini. Practice a class presentation, introduction, or idea. Full video remains on the device. With explicit consent, Gemini receives audio and selected still frames for the three review stages.
+A speaking practice studio for students preparing class presentations and project pitches, and anyone rehearsing a short talk, built with HTML, CSS, JavaScript, MediaPipe, Fastify, and Gemini. Practice a class presentation, introduction, or idea. Full video remains on the device. With explicit consent, Gemini receives audio and selected still frames for the three review stages.
 
 ## Run locally
 
@@ -44,7 +44,7 @@ Read your active request, token, and daily quotas in Google AI Studio, then set 
 Local recording creates no cloud session and sends no media to the backend. AI review requires a configured server key and explicit cloud-processing consent during setup. Google's unpaid-service terms permit product improvement and human review and instruct users not to submit sensitive, confidential, or personal information; regional exceptions apply. Evaluate https://ai.google.dev/gemini-api/terms before accepting identifiable recordings from real users. Application cleanup does not promise confidential or zero-retention processing by Google.
 
 - Combined video is never accepted by the backend. It stays in a browser Blob until reset or page close.
-- Script drafts and topic preferences survive reload in this tab's sessionStorage. Recordings are not persisted. New practice clears the recording and session while keeping the script for another take.
+- Script drafts, topic preferences, and a user-chosen practice focus survive reload in this tab's sessionStorage. Recordings are not persisted. New practice clears the recording and session while keeping the script and practice focus for another take. The focus is editable during preparation and combined review; suggested focuses are generic prompts, not AI findings.
 - Audio and at most 20 resized JPEG frames are submitted for analysis.
 - Uploaded Gemini audio is explicitly deleted in `finally`; failed deletion is disclosed. Gemini Files also have an automatic expiry.
 - Non-live Interactions use `store:false`. Chat uses application-held report/history, not provider-side conversation IDs.
@@ -68,7 +68,7 @@ Pitchy estimates pitch periodicity, not intelligibility. Audio level and pitch-v
 
 ## Architecture
 
-The interface uses deep pine, pale mint, white, and warm neutral surfaces, with self-hosted Sora and Source Sans 3 fonts and Lucide icons. Home (`#home`), About Us (`#about`), and the speaking studio (`#studio`) share the same application; page navigation preserves the current script and review in memory. The Home page includes a working topic launcher, keyboard-accessible illustrative review explorer, and FAQ. Focus, loading, error, success, local-only, and reduced-motion states are implemented.
+The interface uses deep pine, pale mint, white, and warm neutral surfaces, with self-hosted Sora and Source Sans 3 fonts and Lucide icons. Home (`#home`), About Us (`#about`), and the speaking studio (`#studio`) share the same application; page navigation preserves the current script and review in memory. The Home page leads with student presentations and pitches, a sample talk outline, a prepare–rehearse–review walkthrough, and a working topic launcher, keyboard-accessible illustrative review explorer, and FAQ. Focus, loading, error, success, local-only, and reduced-motion states are implemented.
 
 `src/pages.js` contains the public pages; `src/studio-views.js` contains preparation and setup; `src/style.css` defines shared tokens and responsive components. `src/draft.js` handles tab-scoped draft persistence, `src/text.js` handles text utilities, and `src/icons.js` centralizes tree-shaken icons. The redesign follows Impeccable; product decisions live in `PRODUCT.md` and the design system in `DESIGN.md`.
 
@@ -100,6 +100,8 @@ For the separate live provider check, configure the server-side key and set `AI_
 Real-device and credentialed Gemini checks are still required before a public release: seated/standing calibration, speech with accents/noise, five-minute synchronization, connectivity loss, actual project quotas, model response shape, provider deletion, and AI advice accuracy. The target of 90% filler precision, 80% recall, and evidence alignment under 250 ms requires an annotated evaluation dataset; it is not implied by automated unit tests.
 
 ## Deploy
+
+**Current public deployment:** see [DEPLOYMENT.md](DEPLOYMENT.md) for the frontend/API/WebSocket trace and October 7, 2026 observations. Health responds, but draft/session probes fail at function invocation and a nested report route returns Vercel `NOT_FOUND`. The configuration below describes the intended setup, not verified working production AI. Private project settings and function logs must be checked before changing routing.
 
 For Vercel, import this repository with the project root unchanged. The root `server.mjs` entrypoint and explicit `api/[...path].mjs` fallback expose the Fastify API and serve the Vite build, and the build command downloads the local MediaPipe assets before compiling the frontend. Add `GEMINI_API_KEY` to the Vercel Project Environment Variables for both Preview and Production, then redeploy; environment-variable changes do not affect an existing deployment. Vercel's `VERCEL_URL`, `VERCEL_BRANCH_URL`, and `VERCEL_PROJECT_PRODUCTION_URL` are accepted automatically for API origin checks. Set `APP_ORIGIN` to the exact public HTTPS origin when using a custom domain.
 

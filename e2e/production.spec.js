@@ -1,5 +1,51 @@
 import { expect, test } from '@playwright/test';
 
+test('project-pitch launcher survives health updates and keeps an existing draft', async ({
+  page,
+}) => {
+  let releaseHealth;
+  const ready = new Promise((resolve) => {
+    releaseHealth = resolve;
+  });
+  await page.route('**/api/health', async (route) => {
+    await ready;
+    await route.fulfill({ json: { ok: true, aiConfigured: true } });
+  });
+  await page.goto('/');
+  await page.getByLabel('What are you practicing for?').fill('Our accessible campus project');
+  const healthResponse = page.waitForResponse('**/api/health');
+  releaseHealth();
+  await healthResponse;
+  await expect(page.getByLabel('What are you practicing for?')).toHaveValue(
+    'Our accessible campus project',
+  );
+  await page.getByRole('button', { name: 'Project pitch', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Project pitch', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.getByRole('button', { name: 'Enter studio' }).click();
+  await expect(page.getByLabel('What would you like to talk about?')).toHaveValue(
+    'Pitch our group project to my class',
+  );
+  await page
+    .getByLabel('Your practice script')
+    .fill('Our project makes campus easier to navigate.');
+  await page.getByLabel('My practice focus').fill('Explain the problem before the solution.');
+  await page
+    .getByRole('navigation', { name: 'Website navigation' })
+    .getByRole('link', { name: 'Home', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'An introduction', exact: true }).click();
+  await page.getByRole('button', { name: 'Enter studio' }).click();
+  await expect(page.getByLabel('Your practice script')).toHaveValue(
+    'Our project makes campus easier to navigate.',
+  );
+  await expect(page.getByLabel('My practice focus')).toHaveValue(
+    'Explain the problem before the solution.',
+  );
+});
+
 test('homepage topic carries into a usable draft and persists across refresh', async ({ page }) => {
   await page.route('**/api/health', (route) =>
     route.fulfill({ json: { ok: true, aiConfigured: true } }),

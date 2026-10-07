@@ -5,7 +5,7 @@ import { api, post, streamChat } from './api.js';
 import { PracticeMedia } from './media.js';
 import { escape, wordCount, readingTime } from './text.js';
 import { loadDraft, saveDraft } from './draft.js';
-import { scriptView as prepareView, setupView as sceneView } from './studio-views.js';
+import { scriptView as prepareView, setupView as sceneView, focusView } from './studio-views.js';
 import { parseReport } from '../shared/reports.js';
 
 const formatTime = (ms) =>
@@ -16,8 +16,10 @@ const state = {
   script: '',
   scriptTab: 'write',
   topic: '',
+  launcherTopic: '',
   audience: 'My classmates',
   duration: 2,
+  focus: '',
   mode: 'seated',
   consent: false,
   sessionId: null,
@@ -64,7 +66,7 @@ function render() {
         ? 'Stagecraft — Make yourself heard'
         : 'Speaking studio — Stagecraft';
   if (currentPage !== 'studio') {
-    $('app').innerHTML = publicPage(currentPage);
+    $('app').innerHTML = publicPage(currentPage, state.launcherTopic);
     bindPublic();
     return;
   }
@@ -203,7 +205,7 @@ function reviewView() {
           )
           .join('')}</div></section>`
       : ''
-  }${stage === 'combined' ? rubricMarkup() + chatMarkup() : `<details class="rubric"><summary>${stage === 'audio' ? 'Read the complete transcript' : 'How posture feedback is measured'}</summary><p>${stage === 'audio' ? escape(state.report?.transcript || 'The transcript will appear after Gemini finishes audio processing.') : 'Measurements compare visible head, shoulder, and torso alignment with your neutral baseline. Low-visibility frames are excluded; this does not measure your internal confidence.'}</p></details>`}${state.report?.cleanupWarning ? `<p class="notice error">${escape(state.report.cleanupWarning)}</p>` : ''}<div class="review-actions"><button class="button secondary" id="reset">${icon('reset')}New practice</button>${stage !== 'combined' ? `<button class="button primary" data-phase="${stage === 'audio' ? 'video' : 'combined'}">${stage === 'audio' ? 'Watch my delivery' : 'Bring it together'}</button>` : ''}</div></section>${feedbackMarkup(stage)}</div><p class="footer-note">${icon('shield')}Your local recording is cleared when you reset or close this page. Google’s data-use terms apply to cloud processing.</p>`;
+  }${stage === 'combined' ? focusView(state, true) + rubricMarkup() + chatMarkup() : `<details class="rubric"><summary>${stage === 'audio' ? 'Read the complete transcript' : 'How posture feedback is measured'}</summary><p>${stage === 'audio' ? escape(state.report?.transcript || 'The transcript will appear after Gemini finishes audio processing.') : 'Measurements compare visible head, shoulder, and torso alignment with your neutral baseline. Low-visibility frames are excluded; this does not measure your internal confidence.'}</p></details>`}${state.report?.cleanupWarning ? `<p class="notice error">${escape(state.report.cleanupWarning)}</p>` : ''}<div class="review-actions"><button class="button secondary" id="reset">${icon('reset')}New practice</button>${stage !== 'combined' ? `<button class="button primary" data-phase="${stage === 'audio' ? 'video' : 'combined'}">${stage === 'audio' ? 'Watch my delivery' : 'Bring it together'}</button>` : ''}</div></section>${feedbackMarkup(stage)}</div><p class="footer-note">${icon('shield')}Your local recording is cleared when you reset or close this page. Google’s data-use terms apply to cloud processing.</p>`;
 }
 function metric(label, value, note) {
   return `<div class="metric"><span class="label">${label}</span><strong>${value}</strong><small>${note}</small></div>`;
@@ -211,6 +213,23 @@ function metric(label, value, note) {
 
 function bind() {
   const on = (id, event, fn) => $(id)?.addEventListener(event, fn);
+  const keepFocus = (value) => {
+    state.focus = value.slice(0, 240);
+    $('focus-status').textContent = saveDraft(state)
+      ? 'Kept with your script in this tab for your next take.'
+      : 'Kept for your next take while this page is open.';
+    document.querySelectorAll('[data-focus]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.focus === state.focus));
+    });
+  };
+  on('next-focus', 'input', (event) => keepFocus(event.target.value));
+  document.querySelectorAll('[data-focus]').forEach((button) => {
+    button.addEventListener('click', () => {
+      $('next-focus').value = button.dataset.focus;
+      keepFocus(button.dataset.focus);
+      $('next-focus').focus();
+    });
+  });
   on('back-welcome', 'click', () => navigate('welcome'));
   on('write-tab', 'click', () => {
     state.scriptTab = 'write';
@@ -767,9 +786,22 @@ function bindPublic() {
   document.querySelectorAll('[data-topic]').forEach((button) =>
     button.addEventListener('click', () => {
       $('practice-topic').value = button.dataset.topic;
+      state.launcherTopic = button.dataset.topic;
+      document.querySelectorAll('[data-topic]').forEach((choice) => {
+        choice.setAttribute('aria-pressed', String(choice === button));
+      });
       $('practice-topic').focus();
     }),
   );
+  $('practice-topic')?.addEventListener('input', (event) => {
+    state.launcherTopic = event.target.value;
+    document.querySelectorAll('[data-topic]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.topic === event.target.value));
+    });
+  });
+  document.querySelectorAll('[data-topic]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.topic === state.launcherTopic));
+  });
   const tabs = [...document.querySelectorAll('[data-demo]')];
   const select = (button) => {
     for (const tab of tabs) {

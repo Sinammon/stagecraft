@@ -38,8 +38,18 @@ test('manual script, real browser capture, offline reviews, muted video, and res
   await page.getByRole('button', { name: 'Bring it together', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Overall score unavailable' })).toBeVisible();
   await expect(page.locator('#chat-input')).toBeDisabled();
+  await page.getByRole('button', { name: 'Pause between ideas', exact: true }).click();
+  await expect(page.getByLabel('My focus for the next take')).toHaveValue('Pause between ideas');
+  await page.getByLabel('My focus for the next take').fill('Pause after the project problem.');
   await page.getByRole('button', { name: 'New practice' }).click();
   await expect(page.getByLabel('Your practice script')).toHaveValue(/Today I want/);
+  await expect(page.getByLabel('My practice focus')).toHaveValue(
+    'Pause after the project problem.',
+  );
+  await page.reload();
+  await expect(page.getByLabel('My practice focus')).toHaveValue(
+    'Pause after the project problem.',
+  );
   expect(errors).toEqual([]);
 });
 test('script generation and quota errors are visible without exposing a key', async ({ page }) => {
