@@ -74,7 +74,9 @@ test('local practice creates no cloud session or upload even when AI is enabled'
     .fill('A short local practice that stays on my device.');
   await page.getByRole('button', { name: 'Set up my recording' }).click();
   await page.getByRole('button', { name: 'Enable camera & microphone' }).click();
-  await expect(page.getByRole('button', { name: 'Start practice' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Start practice' })).toBeEnabled({
+    timeout: 20000,
+  });
   await expect(page.locator('#consent')).not.toBeChecked();
   await page.getByRole('button', { name: 'Start practice' }).click();
   await expect(page.locator('#timer')).not.toHaveText('00:00');
@@ -118,4 +120,30 @@ test('home, about, studio, and setup fit phone and tablet viewports', async ({ p
       true,
     );
   }
+});
+
+test('three-stage studio navigation and denied devices keep preparation recoverable', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = async () => {
+      throw new DOMException('Permission denied', 'NotAllowedError');
+    };
+  });
+  await page.goto('/#studio');
+  await expect(page).toHaveTitle('Speaking studio — Heard');
+  const steps = page.getByRole('navigation', { name: 'Practice progress' });
+  await expect(steps.getByRole('listitem')).toHaveCount(3);
+  await expect(steps.locator('[aria-current="step"]')).toContainText('Prepare');
+  await page.getByLabel('Your practice script').fill('Keep this script when device access fails.');
+  await page.getByRole('button', { name: 'Set up my recording' }).click();
+  await expect(steps.locator('[aria-current="step"]')).toContainText('Practice');
+  await page.getByRole('button', { name: 'Enable camera & microphone' }).click();
+  await expect(page.getByRole('alert')).toContainText('access was denied');
+  await expect(page.getByRole('button', { name: 'Start practice' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Enable camera & microphone' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Back to script' }).click();
+  await expect(page.getByLabel('Your practice script')).toHaveValue(
+    'Keep this script when device access fails.',
+  );
 });

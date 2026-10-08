@@ -1,4 +1,4 @@
-# Stagecraft
+# Heard
 
 A speaking practice studio for students and everyday conversations, built with HTML, CSS, JavaScript, MediaPipe, Fastify, and Gemini. Practice a class presentation, introduction, or idea. Full video remains on the device. With explicit consent, Gemini receives audio and selected still frames for the three review stages.
 
@@ -68,9 +68,9 @@ Pitchy estimates pitch periodicity, not intelligibility. Audio level and pitch-v
 
 ## Architecture
 
-The interface uses deep pine, pale mint, white, and warm neutral surfaces, with self-hosted Sora and Source Sans 3 fonts and Lucide icons. Home (`#home`), About Us (`#about`), and the speaking studio (`#studio`) share the same application; page navigation preserves the current script and review in memory. The Home page includes a working topic launcher, keyboard-accessible illustrative review explorer, and FAQ. Focus, loading, error, success, local-only, and reduced-motion states are implemented.
+The app is branded as **Heard**, with a warm neutral canvas, charcoal controls, an orange speech-and-waveform logo, self-hosted Geist and Instrument Serif fonts, and bundled Phosphor icons. Home (`#home`), Our approach (`#about`), and the speaking studio (`#studio`) share hash navigation and preserve the current draft and review. The homepage offers a topic launcher, keyboard-accessible illustrative review explorer, and compact FAQ. The studio uses three progress stages: **Prepare → Practice → Review**. Camera setup sits inside Practice; Listen, Watch, and Reflect remain separate review modes.
 
-`src/pages.js` contains the public pages; `src/studio-views.js` contains preparation and setup; `src/style.css` defines shared tokens and responsive components. `src/draft.js` handles tab-scoped draft persistence, `src/text.js` handles text utilities, and `src/icons.js` centralizes tree-shaken icons. The redesign follows Impeccable; product decisions live in `PRODUCT.md` and the design system in `DESIGN.md`.
+`src/pages.js` contains the public pages; `src/studio-views.js` contains preparation and setup; `src/style.css` defines shared tokens and responsive components. `src/brand.js` defines the scalable mark and wordmark; `public/heard-mark.svg` and `public/favicon.svg` provide standalone assets. `src/draft.js` retains the legacy storage key so existing drafts survive the rebrand, `src/text.js` handles text utilities, and `src/icons.js` imports only the Phosphor assets used. Fonts and icons are served locally, with no external font or image requests. Keyboard focus, loading, errors, local-only states, reduced motion, and reduced transparency are supported. Product decisions live in `PRODUCT.md` and the design system in `DESIGN.md`.
 
 - `src/`: workflow UI, capture controller, posture worker, acoustic worker, safe API/chat rendering.
 - `shared/`: scoring and calibration/episode logic shared with the backend.
@@ -106,8 +106,8 @@ For Vercel, import this repository with the project root unchanged. The root `se
 The Vercel deployment supports draft generation and the request/response analysis routes. Live transcription uses a WebSocket and may require a persistent Node host with WebSocket support; the app falls back to final local audio analysis when live transcription is unavailable. For the full five-minute, stateful experience, use the included Dockerfile with a reverse proxy/platform providing HTTPS and WebSocket support. Set `HOST=0.0.0.0`, `APP_ORIGIN` to the exact HTTPS origin, `SECURE_COOKIES=true`, and server-side Gemini secrets. Background jobs, in-memory sessions, and live WebSockets require a persistent backend; a frontend-only or serverless deployment is insufficient for the full experience. No public deployment or upload is performed by the local setup.
 
 ```powershell
-docker build -t stagecraft .
-docker run --env-file .env -e HOST=0.0.0.0 -p 3000:3000 stagecraft
+docker build -t heard .
+docker run --env-file .env -e HOST=0.0.0.0 -p 3000:3000 heard
 ```
 
 Do not scale to multiple instances without shared sessions, a distributed quota limiter, and durable cancellable jobs. Accounts, persistent cloud video, history, and mobile/Safari recording are outside this MVP.

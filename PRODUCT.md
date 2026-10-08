@@ -1,4 +1,4 @@
-# Stagecraft
+# Heard
 
 <!-- impeccable:product-schema 1 -->
 
@@ -30,9 +30,11 @@ existing product scope. AI requires a server-side Gemini key and project quota.
 
 ## Brand Commitments
 
-Preserve the Stagecraft name. The owner requests a minimal, elegant, modern product with distinctive
-typography, clear interactions, responsive layouts, and no decorative glass or unnecessary gradients.
-The owner selected a code-first build and delegated routine product and design decisions.
+The app is rebranded as Heard, inspired by the owner's speech-and-waveform reference. The experience
+uses warm neutral surfaces, charcoal actions, a single orange brand accent, and serif/sans typographic
+contrast. Three top-level stages — Prepare, Practice, Review — replace the former six-step sidebar.
+The owner requested a complete redesign and delegated design and information architecture decisions.
+Keep copy brief, show optional controls where they matter, and preserve every existing workflow.
 
 ## Evidence on Hand
 

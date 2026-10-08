@@ -14,11 +14,11 @@ export default async function handler(request, response) {
     const app = await getApp();
     app.server.emit('request', request, response);
   } catch (error) {
-    console.error('Stagecraft API initialization failed:', error);
+    console.error('Heard API initialization failed:', error);
     if (!response.headersSent) {
       response.statusCode = 500;
       response.setHeader('Content-Type', 'application/json; charset=utf-8');
-      response.end(JSON.stringify({ error: 'Stagecraft API failed to start.' }));
+      response.end(JSON.stringify({ error: 'Heard API failed to start.' }));
     } else {
       response.end();
     }

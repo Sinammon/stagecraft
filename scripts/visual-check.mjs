@@ -4,7 +4,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 // Internal visual evidence uses clearly labeled provider fixtures, never a live AI call.
 await mkdir('.impeccable/review', { recursive: true });
 const browser = await chromium.launch({
-  args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH,
+  args: ['--disable-gpu', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
 });
 const errors = [];
 let expectingQuotaError = false;
@@ -28,8 +29,12 @@ page.on('console', (message) => {
 });
 const capture = async (name, mobile = false) => {
   await page.setViewportSize({ width: mobile ? 390 : 1440, height: mobile ? 844 : 1000 });
+  await page.waitForLoadState('networkidle');
   await page.evaluate(() => document.fonts.ready);
-  await page.evaluate(() => scrollTo(0, 0));
+  await page.evaluate(async () => {
+    scrollTo(0, 0);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
   if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth))
     throw new Error(`Overflow in ${name}`);
   await page.screenshot({ path: `.impeccable/review/${name}.png`, fullPage: true });

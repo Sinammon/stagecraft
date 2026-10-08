@@ -1,5 +1,5 @@
 {
-  "name": "stagecraft-speaking-coach",
+  "name": "heard-speaking-studio",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -22,12 +22,12 @@
     "@fastify/multipart": "^9.3.0",
     "@fastify/static": "^10.1.5",
     "@fastify/websocket": "^11.2.0",
-    "@fontsource-variable/sora": "^5.3.0",
-    "@fontsource-variable/source-sans-3": "^5.3.0",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
     "@google/genai": "^2.27.0",
     "@mediapipe/tasks-vision": "0.10.32",
+    "@phosphor-icons/core": "^2.1.1",
     "fastify": "^5.6.0",
-    "lucide": "^1.50.0",
     "pitchy": "^4.1.0",
     "zod": "^4.1.0"
   },

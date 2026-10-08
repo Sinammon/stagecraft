@@ -19,7 +19,7 @@ test('manual script, real browser capture, offline reviews, muted video, and res
   await expect(page.getByRole('button', { name: 'Finish practice' })).toBeVisible();
   await expect(page.locator('#timer')).not.toHaveText('00:00', { timeout: 8000 });
   await page.getByRole('button', { name: 'Finish practice' }).click();
-  await expect(page.getByRole('heading', { name: 'Hear your talk with fresh ears.' })).toBeVisible({
+  await expect(page.getByRole('heading', { name: 'Listen to your words.' })).toBeVisible({
     timeout: 10000,
   });
   await expect(page.locator('audio')).toBeVisible();
@@ -84,21 +84,35 @@ test('home, about, and studio navigation preserve the script and support browser
   page,
 }) => {
   await page.goto('/#about');
-  await expect(page.getByRole('heading', { name: 'Every voice deserves a stage.' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Your voice. A little more room.' }),
+  ).toBeVisible();
   await page
     .getByRole('navigation', { name: 'Main navigation' })
     .getByRole('link', { name: 'Home', exact: true })
     .click();
-  await expect(page.getByRole('heading', { name: 'Make yourself heard.' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'A little practice. A clearer voice.' }),
+  ).toBeVisible();
   await page.goBack();
-  await expect(page.getByRole('heading', { name: 'Every voice deserves a stage.' })).toBeVisible();
-  await page.getByRole('link', { name: 'Open studio' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Your voice. A little more room.' }),
+  ).toBeVisible();
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .locator('..')
+    .getByRole('link', { name: 'Open studio' })
+    .click();
   await page.getByLabel('Your practice script').fill('This draft should survive page navigation.');
   await page
     .getByRole('navigation', { name: 'Website navigation' })
-    .getByRole('link', { name: 'About us' })
+    .getByRole('link', { name: 'Our approach' })
     .click();
-  await page.getByRole('link', { name: 'Open studio' }).click();
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .locator('..')
+    .getByRole('link', { name: 'Open studio' })
+    .click();
   await expect(page.getByLabel('Your practice script')).toHaveValue(
     'This draft should survive page navigation.',
   );
@@ -106,21 +120,23 @@ test('home, about, and studio navigation preserve the script and support browser
 
 test('landing page review explorer, FAQ, and mobile about page are usable', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: 'See how it works' }).click();
+  await page.getByRole('link', { name: 'How it works', exact: true }).click();
   const watch = page.getByRole('tab', { name: 'Watch', exact: true });
   await watch.click();
-  await expect(page.getByRole('tabpanel')).toContainText('Let your delivery speak.');
+  await expect(page.getByRole('tabpanel')).toContainText('See how your message lands.');
   await page.keyboard.press('ArrowRight');
   await expect(page.getByRole('tab', { name: 'Reflect', exact: true })).toBeFocused();
-  await expect(page.getByRole('tabpanel')).toContainText('Turn reflection into a next step.');
-  await page.getByText('Does Stagecraft measure confidence?', { exact: true }).click();
+  await expect(page.getByRole('tabpanel')).toContainText('Choose your next small improvement.');
+  await page.getByText('Does Heard measure confidence?', { exact: true }).click();
   await expect(page.getByText(/A webcam cannot measure how confident you feel/)).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await page
     .getByRole('navigation', { name: 'Main navigation' })
-    .getByRole('link', { name: 'About us' })
+    .getByRole('link', { name: 'Our approach' })
     .click();
-  await expect(page.getByRole('heading', { name: 'Every voice deserves a stage.' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Your voice. A little more room.' }),
+  ).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );

@@ -7,7 +7,7 @@ await app.listen({
   host: process.env.HOST || '0.0.0.0',
 });
 
-console.log(`Stagecraft: ${process.env.APP_ORIGIN || 'Vercel deployment'}`);
+console.log(`Heard: ${process.env.APP_ORIGIN || 'Vercel deployment'}`);
 console.log(
   process.env.GEMINI_API_KEY
     ? 'Gemini configured. Check project quotas before cloud processing.'
