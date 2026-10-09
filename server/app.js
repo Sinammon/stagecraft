@@ -297,6 +297,7 @@ export async function buildApp({
               'audio',
               {
                 transcript: s.transcript.text,
+                ...(payload.memorization ? { memorization: payload.memorization } : {}),
                 durationMs: payload.durationMs,
                 metrics: speechMetrics,
                 acoustics: payload.acoustics,

@@ -28,6 +28,10 @@ small screens. The current API needs a continuously running Node service; sessio
 and instance-local. Multi-instance persistence, accounts, and retained cloud video are outside the
 existing product scope. AI requires a server-side Gemini key and project quota.
 
+## Practice experience
+
+Home, Our approach, and Studio are separate pages. Home keeps a brief message, a left-aligned mark, and a clear Studio action. Studio offers Guided practice and a timed Memorization test. The test prepares AI key points, allows 1–30 minutes to study, automatically starts recording, and hides the full script. Audio review compares delivery with the reference script; visual review stays isolated from speech. Short movements do not immediately trigger posture warnings. Alignment estimates remain approximate and need real-device validation. The previous version remains accessible on `main`.
+
 ## Brand Commitments
 
 The app is rebranded as Heard, inspired by the owner's speech-and-waveform reference. The experience

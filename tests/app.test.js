@@ -96,65 +96,74 @@ it('requires ownership for reports and deletion', async () => {
     (await app.inject({ url: `/api/sessions/${id}/report`, headers: { cookie } })).statusCode,
   ).toBe(404);
 });
-it('processes stages with isolated inputs and deletes uploaded audio', async () => {
-  const provider = fakeProvider();
-  const calls = [];
-  let deleted = false;
-  provider.review = async (stage, data, media) => {
-    calls.push({ stage, data, media });
-    return report;
-  };
-  provider.deleteFile = async () => {
-    deleted = true;
-  };
-  const { app, id, cookie } = await setup(provider);
-  const { blob } = wavFromChunks([new Float32Array(16000)]);
-  const audio = Buffer.from(await blob.arrayBuffer());
-  const payload = {
-    durationMs: 1000,
-    mode: 'seated',
-    poseSamples: [],
-    postureEvents: [],
-    frames: [],
-    acoustics: { pitchVariation: null, relativeLoudness: 0, clippedFraction: 0 },
-  };
-  const boundary = 'practice-boundary';
-  const body = Buffer.concat([
-    Buffer.from(
-      `--${boundary}\r\nContent-Disposition: form-data; name="payload"\r\n\r\n${JSON.stringify(payload)}\r\n--${boundary}\r\nContent-Disposition: form-data; name="audio"; filename="practice.wav"\r\nContent-Type: audio/wav\r\n\r\n`,
-    ),
-    audio,
-    Buffer.from(`\r\n--${boundary}--\r\n`),
-  ]);
-  const response = await app.inject({
-    method: 'POST',
-    url: `/api/sessions/${id}/analyze`,
-    headers: { cookie, 'content-type': `multipart/form-data; boundary=${boundary}` },
-    payload: body,
-  });
-  expect(response.statusCode).toBe(202);
-  await new Promise((resolve) => setTimeout(resolve, 30));
-  const result = (
-    await app.inject({ url: `/api/sessions/${id}/report`, headers: { cookie } })
-  ).json();
-  expect(result.status).toBe('complete');
-  expect(result.score.score).toBeNull();
-  expect(deleted).toBe(true);
-  expect(calls.map((c) => c.stage)).toEqual(['audio', 'video', 'combined']);
-  expect(calls[0].data).not.toHaveProperty('mode');
-  expect(calls[0].data.metrics).not.toHaveProperty('postureDeviationPercent');
-  expect(calls[0].media[0].type).toBe('audio');
-  expect(calls[1].data).not.toHaveProperty('transcript');
-  expect(calls[1].media).toEqual([]);
-  expect(calls[2].media).toEqual([]);
-  const duplicate = await app.inject({
-    method: 'POST',
-    url: `/api/sessions/${id}/analyze`,
-    headers: { cookie },
-  });
-  expect(duplicate.statusCode).toBe(202);
-  expect(calls).toHaveLength(3);
-});
+it.each([false, true])(
+  'processes isolated stages and deletes audio (memorization: %s)',
+  async (memorization) => {
+    const provider = fakeProvider();
+    const calls = [];
+    let deleted = false;
+    provider.review = async (stage, data, media) => {
+      calls.push({ stage, data, media });
+      return report;
+    };
+    provider.deleteFile = async () => {
+      deleted = true;
+    };
+    const { app, id, cookie } = await setup(provider);
+    const { blob } = wavFromChunks([new Float32Array(16000)]);
+    const audio = Buffer.from(await blob.arrayBuffer());
+    const payload = {
+      durationMs: 1000,
+      mode: 'seated',
+      ...(memorization
+        ? { memorization: { script: 'Remember these main ideas.', minutes: 2 } }
+        : {}),
+      poseSamples: [],
+      postureEvents: [],
+      frames: [],
+      acoustics: { pitchVariation: null, relativeLoudness: 0, clippedFraction: 0 },
+    };
+    const boundary = 'practice-boundary';
+    const body = Buffer.concat([
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="payload"\r\n\r\n${JSON.stringify(payload)}\r\n--${boundary}\r\nContent-Disposition: form-data; name="audio"; filename="practice.wav"\r\nContent-Type: audio/wav\r\n\r\n`,
+      ),
+      audio,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/sessions/${id}/analyze`,
+      headers: { cookie, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    expect(response.statusCode).toBe(202);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    const result = (
+      await app.inject({ url: `/api/sessions/${id}/report`, headers: { cookie } })
+    ).json();
+    expect(result.status).toBe('complete');
+    expect(result.score.score).toBeNull();
+    expect(deleted).toBe(true);
+    expect(calls.map((c) => c.stage)).toEqual(['audio', 'video', 'combined']);
+    expect(calls[0].data).not.toHaveProperty('mode');
+    expect(calls[0].data.metrics).not.toHaveProperty('postureDeviationPercent');
+    expect(calls[0].media[0].type).toBe('audio');
+    expect(calls[0].data.memorization).toEqual(payload.memorization);
+    expect(calls[1].data).not.toHaveProperty('transcript');
+    expect(calls[1].data).not.toHaveProperty('memorization');
+    expect(calls[2].data).not.toHaveProperty('memorization');
+    expect(calls[1].media).toEqual([]);
+    expect(calls[2].media).toEqual([]);
+    const duplicate = await app.inject({
+      method: 'POST',
+      url: `/api/sessions/${id}/analyze`,
+      headers: { cookie },
+    });
+    expect(duplicate.statusCode).toBe(202);
+    expect(calls).toHaveLength(3);
+  },
+);
 it('returns chat as a stream and validates prerequisites', async () => {
   const { app, id, cookie } = await setup();
   expect(

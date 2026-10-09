@@ -5,6 +5,12 @@ export const analysisSchema = z
   .object({
     durationMs: z.number().finite().min(1).max(300250),
     mode: z.enum(['seated', 'standing']),
+    memorization: z
+      .object({
+        script: z.string().trim().min(3).max(15000),
+        minutes: z.number().int().min(1).max(30),
+      })
+      .optional(),
     poseSamples: z
       .array(z.object({ timeMs: time, valid: z.boolean(), deviation: z.boolean() }))
       .max(5000),

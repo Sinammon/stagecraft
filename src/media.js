@@ -1,4 +1,10 @@
-import { calibrate, measurements, deviation, EpisodeTracker } from '../shared/posture.js';
+import {
+  calibrate,
+  measurements,
+  deviation,
+  EpisodeTracker,
+  PostureFilter,
+} from '../shared/posture.js';
 import { provisionalScore, isFiller } from '../shared/scoring.js';
 
 export function wavFromChunks(chunks) {
@@ -45,7 +51,8 @@ export class PracticeMedia {
     this.events = [];
     this.pcm = [];
     this.frames = [];
-    this.episodes = new EpisodeTracker();
+    this.episodes = new EpisodeTracker(0, 0);
+    this.postureFilter = new PostureFilter();
     this.turns = [];
     this.seenTurns = new Set();
     this.lastPose = null;
@@ -71,10 +78,13 @@ export class PracticeMedia {
     await video.play();
     for (const track of this.stream.getTracks())
       track.addEventListener('ended', () => {
-        if (this.running)
-          this.callbacks.onInterrupt?.(
-            'A recording device disconnected. Your recording has been preserved.',
-          );
+        this.ready = false;
+        this.baseline = null;
+        this.callbacks.onInterrupt?.(
+          this.running
+            ? 'A recording device disconnected. Your recording has been preserved.'
+            : 'A recording device disconnected. Reconnect your camera and microphone.',
+        );
       });
     this.context = new AudioContext({ sampleRate: 16000 });
     await this.context.resume();
@@ -146,9 +156,19 @@ export class PracticeMedia {
       if (data.type === 'error') this.callbacks.onLive?.(data.message);
       if (data.type === 'pose') {
         this.poseBusy = false;
-        const m = measurements(data.landmarks, this.mode);
-        if (this.calibrating && m) this.calibrationSamples.push(m);
-        const posture = deviation(m, this.baseline, this.mode);
+        const m = measurements(data.landmarks, this.mode, data.aspect);
+        if (this.calibrating) {
+          this.calibrationFrames++;
+          if (m) {
+            this.calibrationFirst ??= data.time;
+            this.calibrationLast = data.time;
+            this.calibrationSamples.push(m);
+          }
+        }
+        const posture = this.postureFilter.update(
+          deviation(m, this.baseline, this.mode),
+          data.time,
+        );
         this.lastPose = { ...posture, landmarks: data.landmarks };
         if (this.running) {
           const sample = {
@@ -171,6 +191,19 @@ export class PracticeMedia {
   frameLoop() {
     if (!this.ready) return;
     const time = performance.now();
+    if (this.poseBusy && time - this.lastFrameTime > 2000) {
+      this.poseReady = false;
+      this.poseBusy = false;
+      this.poseWorker.terminate();
+      this.postureFilter.reset();
+      this.callbacks.onPose?.({
+        valid: false,
+        deviation: false,
+        landmarks: null,
+        hint: 'Posture tracking stopped — reconnect devices to retry',
+      });
+      this.episodes.close(this.episodes.lastValid);
+    }
     if (
       this.poseReady &&
       !this.poseBusy &&
@@ -205,13 +238,25 @@ export class PracticeMedia {
     if (!this.poseReady) throw new Error('Wait for the posture model to load.');
     this.mode = mode;
     this.baseline = null;
+    this.postureFilter.reset();
     this.calibrationSamples = [];
+    this.calibrationFrames = 0;
+    this.calibrationFirst = null;
+    this.calibrationLast = null;
     this.noiseSamples = [];
     this.calibrating = true;
     try {
       await new Promise((resolve) => setTimeout(resolve, 5000));
       if (!this.ready) throw new Error('Camera stopped during calibration.');
+      if (
+        this.calibrationLast - this.calibrationFirst < 4000 ||
+        this.calibrationSamples.length / Math.max(1, this.calibrationFrames) < 0.8
+      )
+        throw new Error(
+          'Tracking was interrupted. Keep your head and shoulders visible for the full five seconds and try again.',
+        );
       this.baseline = calibrate(this.calibrationSamples);
+      this.postureFilter.reset();
       const sorted = this.noiseSamples.sort((a, b) => a - b);
       this.noise = Math.min(0.03, sorted[Math.floor(sorted.length / 2)] || 0.008);
     } finally {

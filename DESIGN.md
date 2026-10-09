@@ -6,16 +6,14 @@ welcoming and enough restraint to keep attention on the user's talk.
 
 ## Information architecture
 
-- **Home** (`#home`): one promise, one topic launcher, a three-step overview, an illustrative review
-  explorer, and a compact FAQ. No testimonials, invented results, or duplicate promotional CTAs.
-- **Our approach** (`#about`): preparation, observable feedback, evidence, and plain-language privacy.
+- **Home** (`#home`): a left-aligned mark, one promise, one topic launcher, and a three-step overview. No testimonials or invented results.
+- **Our approach** (`#about`): preparation, observable feedback, evidence, plain-language privacy, the illustrative review explorer, and FAQ.
 - **Studio** (`#studio`): three progress stages — Prepare, Practice, Review. Preparation offers manual
   writing and Gemini drafting. Practice includes device selection, seated/standing posture,
   optional calibration, required AI consent, adaptive talking-point cards after a first read-through, and recording. Review has Listen, Watch, and Reflect
   modes for audio-only, muted video, and combined playback with coaching.
 
-Home, approach, and studio sit on one scrolling page. Sticky hash navigation scrolls without
-unmounting the studio, including during recording. Studio workflow changes preserve draft/review state. The old draft storage key is deliberately retained for existing users.
+Home, approach, and studio are separate visible pages with sticky hash navigation and browser-history support. The studio mount preserves draft, setup, and review state. Leaving active recording stops the take; leaving memorization cancels its countdown. The old draft storage key is retained for existing users.
 
 ## Identity
 
@@ -39,8 +37,7 @@ quiet border. Panels use 1px structural borders, 10px corners, and generous inte
 are no gradients or heavy shadows. Phosphor Bold SVG icons are bundled individually.
 
 The script editor is the largest preparation surface. Guidance is secondary and removed on narrow
-screens. Setup puts required AI consent before the mirrored camera and optional posture calibration. A confirmed read-through or first recorded take creates 3–8 AI talking-point cards; the next take shows cards with the full script available in a disclosure. Recording puts Finish
-practice next to the timer. Reviews keep playback, measured data, evidence, and feedback together.
+screens. Setup puts required AI consent before the mirrored camera and optional posture calibration. A confirmed read-through or first recorded take creates 3–8 AI talking-point cards; the next take shows cards with the full script available in a disclosure. Guided practice keeps the full script available. Memorization test prepares AI key points before a configurable 1–30 minute countdown; its speaking test hides the script and offers only 3–8 idea cues. Recall feedback appears in the audio review, accepting paraphrases. Recording puts Finish practice next to the timer. Reviews keep playback, measured data, evidence, and feedback together.
 Unavailable measurements stay explicit; illustrations never masquerade as live results.
 
 ## Interaction and accessibility
@@ -57,5 +54,5 @@ Unavailable measurements stay explicit; illustrations never masquerade as live r
 
 ## Scope
 
-This redesign changes branding, layout, navigation presentation, and copy. It adds a bounded, consent-checked `/api/flashcards` route and requires configured AI for session creation. Scoring, recording limits, quota rules, session ownership, and deployed backend lifecycle remain unchanged.
+The redesign adds dedicated pages, practice modes, recall feedback, and more stable posture tracking. It reuses the bounded, consent-checked `/api/flashcards` route and requires configured AI for session creation. Posture geometry accounts for image aspect ratio; calibration rejects unstable observations and feedback uses temporal smoothing. Webcam alignment remains approximate, requiring real-device validation. The scoring formula, recording limits, quota rules, session ownership, and deployed backend lifecycle remain unchanged. The original version is preserved on `main`; see README for restoration instructions.
 No public deployment is performed by the redesign.

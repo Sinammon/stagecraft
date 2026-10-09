@@ -27,7 +27,12 @@ self.onmessage = async ({ data }) => {
   if (data.type === 'frame') {
     try {
       const result = model.detectForVideo(data.bitmap, data.time);
-      self.postMessage({ type: 'pose', landmarks: result.landmarks[0] || null, time: data.time });
+      self.postMessage({
+        type: 'pose',
+        landmarks: result.landmarks[0] || null,
+        time: data.time,
+        aspect: data.bitmap.width / data.bitmap.height,
+      });
     } catch {
       self.postMessage({ type: 'pose', landmarks: null, time: data.time });
     } finally {

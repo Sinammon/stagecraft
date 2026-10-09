@@ -113,7 +113,7 @@ test('home, about, studio, and setup fit phone and tablet viewports', async ({ p
     await page.setViewportSize({ width, height: 900 });
     for (const route of ['/', '/#about', '/#studio']) {
       await page.goto(route);
-      await expect(page.locator('#workspace h1')).toBeVisible();
+      await expect(page.locator('[data-page]:visible h1').first()).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );

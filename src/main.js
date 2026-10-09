@@ -1,4 +1,6 @@
+import { memorizationDuration } from './practice-modes.js';
 import './style.css';
+import './studio.css';
 import { icon } from './icons.js';
 import { publicPage, demoView } from './pages.js';
 import { api, post, streamChat } from './api.js';
@@ -20,6 +22,9 @@ const state = {
   audience: 'My classmates',
   duration: 2,
   mode: 'seated',
+  practiceMode: 'guided',
+  memorizeMinutes: 2,
+  memorizeDeadline: null,
   consent: false,
   sessionId: null,
   media: null,
@@ -30,6 +35,7 @@ const state = {
   error: '',
   success: '',
   busy: false,
+  starting: false,
   calibrated: false,
   calibrating: false,
   camera: false,
@@ -48,13 +54,19 @@ let generation = 0,
   tick,
   poll,
   chatController,
-  cardController;
+  cardController,
+  memoryTick,
+  practiceAttempt = 0;
 
 let currentPage =
   location.hash === '#about' ? 'about' : location.hash === '#studio' ? 'studio' : 'home';
 if (currentPage === 'studio') state.screen = 'script';
 
 function render() {
+  const focused = document.activeElement;
+  const focusedId = focused?.id;
+  const selection =
+    focused && 'selectionStart' in focused ? [focused.selectionStart, focused.selectionEnd] : null;
   document.title =
     currentPage === 'about'
       ? 'Our approach — Heard'
@@ -67,17 +79,30 @@ function render() {
     revealSections();
   }
   const currentStep =
-    state.screen === 'script' ? 0 : ['setup', 'recording'].includes(state.screen) ? 1 : 2;
+    state.screen === 'script'
+      ? 0
+      : ['setup', 'memorize', 'recording'].includes(state.screen)
+        ? 1
+        : 2;
   $('studio-content').innerHTML =
-    `<div class="app-shell"><header class="studio-header"><nav aria-label="Practice progress"><ol class="steps">${['Prepare', 'Practice', 'Review'].map((label, i) => `<li class="step ${i === currentStep ? 'active' : i < currentStep ? 'done' : ''}" ${i === currentStep ? 'aria-current="step"' : ''}><span class="step-number">${i < currentStep ? icon('check') : String(i + 1).padStart(2, '0')}</span><span>${label}</span></li>`).join('')}</ol></nav><span class="connection ${state.health && !state.health.aiConfigured ? 'connection-warning' : ''}">${icon(state.health?.aiConfigured ? 'spark' : 'shield')} ${state.health ? (state.health.aiConfigured ? 'AI review included' : 'AI unavailable · practice paused') : 'Checking AI availability…'}</span></header><div class="shell-main"><div class="workspace" id="workspace" tabindex="-1" aria-busy="${state.busy}">${state.error ? `<div class="error-banner" role="alert">${escape(state.error)}</div>` : ''}${state.success ? `<div class="success-banner" role="status">${escape(state.success)}</div>` : ''}${{ script: scriptView, setup: setupView, recording: recordingView, processing: processingView, review: reviewView }[state.screen]()}</div></div></div>`;
+    `<div class="app-shell"><header class="studio-header"><nav aria-label="Practice progress"><ol class="steps">${['Prepare', 'Practice', 'Review'].map((label, i) => `<li class="step ${i === currentStep ? 'active' : i < currentStep ? 'done' : ''}" ${i === currentStep ? 'aria-current="step"' : ''}><span class="step-number">${i < currentStep ? icon('check') : String(i + 1).padStart(2, '0')}</span><span>${label}</span></li>`).join('')}</ol></nav><span class="connection ${state.health && !state.health.aiConfigured ? 'connection-warning' : ''}">${icon(state.health?.aiConfigured ? 'spark' : 'shield')} ${state.health ? (state.health.aiConfigured ? 'AI review included' : 'AI unavailable · practice paused') : 'Checking AI availability…'}</span></header><div class="shell-main"><div class="workspace" id="workspace" tabindex="-1" aria-busy="${state.busy}">${state.error ? `<div class="error-banner" role="alert">${escape(state.error)}</div>` : ''}${state.success ? `<div class="success-banner" role="status">${escape(state.success)}</div>` : ''}${{ script: scriptView, setup: setupView, memorize: memorizationView, recording: recordingView, processing: processingView, review: reviewView }[state.screen]()}</div></div></div>`;
+  syncPage();
   bind();
-  if (state.screen === 'recording' || (state.screen === 'setup' && state.camera)) attachPreview();
+  if (
+    ['recording', 'memorize'].includes(state.screen) ||
+    (state.screen === 'setup' && state.camera)
+  )
+    attachPreview();
   document
     .querySelectorAll('[data-question]')
     .forEach(
       (button) => (button.disabled = Boolean(chatController) || !state.report?.stages?.combined),
     );
   if (state.screen === 'review') bindPlayer();
+  if (focusedId && $(focusedId) && !$(focusedId).disabled) {
+    $(focusedId).focus({ preventScroll: true });
+    if (selection?.[0] != null) $(focusedId).setSelectionRange(...selection);
+  }
 }
 function head(label, title, description, pill = '') {
   return `<div class="page-head"><div>${label ? `<p class="eyebrow">${label}</p>` : ''}<h1>${title}</h1>${description ? `<p>${description}</p>` : ''}</div>${pill ? `<span class="pill">${icon('clock')}${pill}</span>` : ''}</div>`;
@@ -89,16 +114,21 @@ function previewMarkup(recording = false) {
   return `<div class="video-box preview"><video id="preview" autoplay muted playsinline aria-label="Mirrored camera preview"></video><canvas id="pose-overlay" aria-hidden="true"></canvas>${!state.camera ? `<div class="video-placeholder">${icon('video')}<p>Your camera preview will appear here</p></div>` : ''}<span class="preview-tag">${recording ? 'PRACTICE IN PROGRESS' : 'CAMERA PREVIEW'}</span><div class="preview-bottom"><span class="tracking-label" id="tracking">${state.calibrated ? 'Calibrated to your baseline' : 'Calibrate your neutral posture'}</span><div class="level-bars" id="level-bars" aria-label="Microphone activity">${Array.from({ length: 12 }, () => '<span></span>').join('')}</div></div></div>`;
 }
 function setupView() {
-  return sceneView(state, head, previewMarkup) + `<div id="practice-cards">${cardsMarkup()}</div>`;
+  return (
+    sceneView(state, head, previewMarkup) +
+    (state.practiceMode === 'guided'
+      ? `<div id="practice-cards">${cardsMarkup()}</div>`
+      : '<p class="local-hint memory-explainer">We’ll prepare your AI key points before the timer starts. Then your script will be hidden and recording will begin automatically. Camera and microphone stay ready during memorization.</p>')
+  );
 }
 function recordingView() {
-  return `${head('02 / Practice', 'All yours.', 'Focus on your message. Live measurements are provisional.')}<div class="recording-grid"><section class="recording-main">${previewMarkup(true)}<div class="recording-toolbar"><span class="timer"><i class="recording-dot" aria-hidden="true"></i><span id="timer">00:00</span><small>/ 05:00</small></span><button class="button stop" id="stop-recording">${icon('stop')}Finish practice</button></div><div id="practice-cards">${cardsMarkup()}</div><details class="script-follow" id="recording-script" ${state.flashcards.length && state.cardScript === state.script ? '' : 'open'}><summary>${state.flashcards.length && state.cardScript === state.script ? 'Show full script' : 'First take · read your script'}</summary><p>${escape(state.script)}</p><p class="local-hint">Finish this take to receive AI talking-point cards for your next practice.</p></details><section class="panel" style="margin-top:20px;padding:22px"><h3>Live transcript</h3><div class="transcript" id="transcript" aria-live="off">${state.sessionId ? 'Your words will appear as the transcript is finalized.' : 'Live transcription is unavailable. Final AI review uses your recorded audio.'}</div></section></section><aside class="recording-aside"><div class="score-panel"><p class="content-label">Live practice score</p><div class="score-value"><strong id="live-score">—</strong><span id="score-state">Collecting evidence</span></div><div class="score-meter" aria-hidden="true"><span id="score-progress" style="transform:scaleX(0)"></span></div><p id="score-explanation">A score appears when speech and posture provide enough usable evidence.</p></div><div class="live-stats"><div class="stat-row"><span>Filler words</span><strong id="filler-count">—</strong></div><div class="stat-row"><span>Pace · words/min</span><strong id="pace-value">—</strong></div><div class="stat-row"><span>Posture</span><strong id="posture-value">${state.calibrated ? 'Tracking' : 'Unavailable'}</strong></div><div class="stat-row"><span>Voice activity</span><strong id="voice-value">Listening</strong></div></div><p class="inline-status" id="live-status" role="status" style="margin-top:16px">${state.sessionId ? 'Preparing live transcription…' : 'Final AI analysis is included in this practice.'}</p></aside></div>`;
+  return `${head('02 / Practice', state.practiceMode === 'memorization' ? 'Make the ideas yours.' : 'All yours.', state.practiceMode === 'memorization' ? 'Speaking test · use only your key points. Recall feedback appears in your Listen review.' : 'Focus on your message. Live measurements are provisional.')}<div class="recording-grid"><section class="recording-main">${previewMarkup(true)}<div class="recording-toolbar"><span class="timer"><i class="recording-dot" aria-hidden="true"></i><span id="timer">00:00</span><small>/ 05:00</small></span><button class="button stop" id="stop-recording">${icon('stop')}Finish practice</button></div><div id="practice-cards">${cardsMarkup()}</div>${state.practiceMode === 'memorization' ? '' : `<details class="script-follow" id="recording-script" ${state.flashcards.length && state.cardScript === state.script ? '' : 'open'}><summary>${state.flashcards.length && state.cardScript === state.script ? 'Show full script' : 'First take · read your script'}</summary><p>${escape(state.script)}</p><p class="local-hint">Finish this take to receive AI talking-point cards for your next practice.</p></details>`}<section class="panel" style="margin-top:20px;padding:22px"><h3>Live transcript</h3><div class="transcript" id="transcript" aria-live="off">${state.sessionId ? 'Your words will appear as the transcript is finalized.' : 'Live transcription is unavailable. Final AI review uses your recorded audio.'}</div></section></section><aside class="recording-aside"><div class="score-panel"><p class="content-label">Live practice score</p><div class="score-value"><strong id="live-score">—</strong><span id="score-state">Collecting evidence</span></div><div class="score-meter" aria-hidden="true"><span id="score-progress" style="transform:scaleX(0)"></span></div><p id="score-explanation">A score appears when speech and posture provide enough usable evidence.</p></div><div class="live-stats"><div class="stat-row"><span>Filler words</span><strong id="filler-count">—</strong></div><div class="stat-row"><span>Pace · words/min</span><strong id="pace-value">—</strong></div><div class="stat-row"><span>Posture</span><strong id="posture-value">${state.calibrated ? 'Tracking' : 'Unavailable'}</strong></div><div class="stat-row"><span>Voice activity</span><strong id="voice-value">Listening</strong></div></div><p class="inline-status" id="live-status" role="status" style="margin-top:16px">${state.sessionId ? 'Preparing live transcription…' : 'Final AI analysis is included in this practice.'}</p></aside></div>`;
 }
 function cardsMarkup() {
   if (state.cardsStatus === 'loading')
     return `<section class="flashcards-section" aria-live="polite"><p class="content-label">Practice from ideas</p><p><span class="spinner"></span> Finding your main talking points…</p></section>`;
   if (state.flashcards.length && state.cardScript === state.script)
-    return `<section class="flashcards-section" aria-labelledby="cards-heading"><div class="cards-heading"><div><p class="eyebrow">Your next take</p><h2 id="cards-heading">Speak from ideas.</h2><p>Use these ${state.flashcards.length} talking points as cues. Explain each one in your own words.</p></div><span class="pill">AI talking points</span></div><ol class="flashcard-grid">${state.flashcards.map((point, i) => `<li class="flashcard"><span class="content-label">${String(i + 1).padStart(2, '0')}</span><h3>${escape(point.title)}</h3><p>${escape(point.cue)}</p></li>`).join('')}</ol></section>`;
+    return `<section class="flashcards-section" aria-labelledby="cards-heading"><div class="cards-heading"><div><p class="eyebrow">${state.practiceMode === 'memorization' ? 'Reference notes' : 'Your next take'}</p><h2 id="cards-heading">Speak from ideas.</h2><p>Use these ${state.flashcards.length} talking points as cues. Explain each one in your own words.</p></div><span class="pill">AI talking points</span></div><ol class="flashcard-grid">${state.flashcards.map((point, i) => `<li class="flashcard"><span class="content-label">${String(i + 1).padStart(2, '0')}</span><h3>${escape(point.title)}</h3><p>${escape(point.cue)}</p></li>`).join('')}</ol></section>`;
   if (state.cardsStatus === 'failed')
     return `<section class="flashcards-section"><h2>Talking points unavailable</h2><p role="status">${escape(state.cardsError)}</p><button class="button secondary" data-retry-cards ${!state.consent || !state.health?.aiConfigured ? 'disabled' : ''}>Retry talking points</button><p class="local-hint">You can continue using your script.</p></section>`;
   if (state.screen !== 'setup') return '';
@@ -195,7 +225,7 @@ function feedbackMarkup(stage) {
   const report = state.report?.stages?.[stage];
   if (!report)
     return `<section class="feedback"><span class="icon-box">${icon(stage === 'audio' ? 'mic' : stage === 'video' ? 'video' : 'chat')}</span><h2 style="margin-top:16px">${state.report?.status === 'processing' ? 'Your review is on its way.' : 'Your recording is ready.'}</h2><p>${escape(state.report?.error || 'AI feedback is unavailable. You can still play your recording and reflect on your delivery.')}</p>${state.report?.status !== 'processing' && state.report?.status !== 'local' ? '<button class="button secondary" id="retry-analysis" style="margin-top:20px">Retry AI analysis</button>' : state.report?.status === 'local' ? '' : '<p class="notice">You can keep listening while the review finishes.</p>'}</section>`;
-  return `<section class="feedback"><h2>${stage === 'audio' ? 'Audio feedback' : stage === 'video' ? 'Visual feedback' : 'Your next step'}</h2><p>${escape(report.summary)}</p>${[
+  return `<section class="feedback"><h2>${stage === 'audio' ? (state.recording?.payload.memorization ? 'Recall & delivery feedback' : 'Audio feedback') : stage === 'video' ? 'Visual feedback' : 'Your next step'}</h2><p>${escape(report.summary)}</p>${[
     ['strengths', 'What’s working'],
     ['improvements', 'Try this next'],
   ]
@@ -359,7 +389,28 @@ function bind() {
       $(target)?.focus();
     });
   }
-  on('to-setup', 'click', () => navigate('setup'));
+  document.querySelectorAll('input[name="practice-mode"]').forEach((input) =>
+    input.addEventListener('change', () => {
+      state.practiceMode = input.value;
+      render();
+      document.querySelector('input[name="practice-mode"]:checked')?.focus();
+    }),
+  );
+  on('memorize-minutes', 'input', (event) => {
+    state.memorizeMinutes = event.target.value;
+    event.target.setCustomValidity(
+      memorizationDuration(event.target.value) ? '' : 'Choose a whole number from 1 to 30.',
+    );
+  });
+  on('to-setup', 'click', () => {
+    if (state.practiceMode === 'memorization' && !memorizationDuration(state.memorizeMinutes)) {
+      $('memorize-minutes').reportValidity();
+      return;
+    }
+    navigate('setup');
+  });
+  on('cancel-memorization', 'click', cancelMemorization);
+  on('begin-test', 'click', finishMemorization);
   on('back-script', 'click', async () => {
     await state.media?.dispose();
     state.camera = false;
@@ -368,7 +419,7 @@ function bind() {
   });
   on('enable-camera', 'click', () => enableCamera());
   on('calibrate', 'click', calibrateCamera);
-  on('start-recording', 'click', startRecording);
+  on('start-recording', 'click', beginPractice);
   on('stop-recording', 'click', () => stopRecording());
   on('consent', 'change', (event) => {
     state.consent = event.target.checked;
@@ -436,7 +487,9 @@ function navigate(screen) {
     heading.tabIndex = -1;
     heading.focus({ preventScroll: true });
   }
-  $('studio').scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+  // Workflow transitions replace the layout. Finish scrolling before the next
+  // action becomes available, rather than competing with its scroll into view.
+  $('studio').scrollIntoView({ behavior: 'instant', block: 'start' });
 }
 function attachPreview() {
   const video = $('preview');
@@ -509,7 +562,16 @@ async function enableCamera(devices = {}) {
         }, 200);
       },
       onInterrupt: (message) => {
+        if (state.screen === 'memorize') {
+          cancelMemorization();
+        }
         if (state.screen === 'recording') void stopRecording(message);
+        else {
+          state.camera = false;
+          state.calibrated = false;
+          state.error = message;
+          render();
+        }
       },
     });
     state.media.mode = state.mode;
@@ -614,26 +676,85 @@ function updateScore(score) {
     $('pace-value').textContent =
       state.media?.liveReady && score.elapsed > 5000 ? Math.round(score.pace) : '—';
 }
+function memorizationView() {
+  return `${head('02 / Memorize', 'Take a moment. Make it stick.', 'Read for ideas, then say them in your own words. Recording starts when time runs out.')}<video id="preview" class="sr-only" autoplay muted playsinline aria-hidden="true"></video><section class="memorization-workspace"><div class="memorization-bar"><div><span class="content-label">Time to memorize</span><div id="memory-timer" class="memory-timer" role="timer" aria-label="Time remaining">${formatTime(Math.max(0, state.memorizeDeadline - Date.now()))}</div></div><button id="begin-test" class="button primary" ${state.busy ? 'disabled' : ''}>${state.busy ? 'Starting your test…' : 'I’m ready — begin test'} ${icon('arrow')}</button></div><div class="memorization-script">${state.starting ? 'Your script is now hidden. Connecting your speaking test…' : escape(state.script)}</div><div class="actions"><button id="cancel-memorization" class="text-button">Cancel memorization</button><p class="local-hint">The full script will be hidden during your test.</p></div></section>`;
+}
+function cancelMemorization() {
+  practiceAttempt++;
+  clearInterval(memoryTick);
+  state.memorizeDeadline = null;
+  state.busy = false;
+  state.starting = false;
+  navigate('setup');
+}
+function finishMemorization() {
+  if (state.screen !== 'memorize' || state.busy) return;
+  clearInterval(memoryTick);
+  state.memorizeDeadline = null;
+  void startRecording();
+}
+async function beginPractice() {
+  if (state.busy || !state.camera || !state.consent || !state.health?.aiConfigured) return;
+  if (state.practiceMode !== 'memorization') return startRecording();
+  const minutes = memorizationDuration(state.memorizeMinutes);
+  if (!minutes) {
+    state.error = 'Choose a memorization time from 1 to 30 minutes.';
+    render();
+    return;
+  }
+  const attempt = ++practiceAttempt;
+  state.busy = true;
+  state.error = '';
+  state.readScript = state.script;
+  render();
+  await generateCards();
+  if (attempt !== practiceAttempt) return;
+  state.busy = false;
+  if (state.cardsStatus !== 'ready' || state.cardScript !== state.script) {
+    state.error =
+      state.cardsError || 'Key points are unavailable. Try beginning memorization again.';
+    render();
+    return;
+  }
+  state.memorizeDeadline = Date.now() + minutes * 60000;
+  navigate('memorize');
+  memoryTick = setInterval(() => {
+    const remaining = Math.max(0, state.memorizeDeadline - Date.now());
+    if ($('memory-timer'))
+      $('memory-timer').textContent = formatTime(Math.ceil(remaining / 1000) * 1000);
+    if (!remaining) finishMemorization();
+  }, 200);
+}
 async function startRecording() {
   if (state.busy || !state.camera || !state.consent || !state.health?.aiConfigured) return;
   state.busy = true;
+  state.starting = true;
   state.error = '';
+  const attempt = ++practiceAttempt;
+  render();
   try {
     const session = await post('/api/sessions', { cloudConsent: true });
     if (typeof session?.id !== 'string')
       throw new Error('The practice session could not be created. Please try again.');
+    if (attempt !== practiceAttempt) {
+      void api(`/api/sessions/${session.id}`, { method: 'DELETE' }).catch(() => {});
+      return;
+    }
     state.sessionId = session?.id || null;
     state.transcript = '';
     state.interim = '';
     state.busy = false;
     navigate('recording');
     state.media.start(state.sessionId, true);
+    state.starting = false;
   } catch (e) {
+    if (attempt !== practiceAttempt) return;
     if (state.sessionId)
       void api(`/api/sessions/${state.sessionId}`, { method: 'DELETE' }).catch(() => {});
     state.sessionId = null;
     state.screen = 'setup';
     state.busy = false;
+    state.starting = false;
     state.error = e.message;
     render();
   }
@@ -649,6 +770,11 @@ async function stopRecording(message = '') {
   }
   try {
     state.recording = await state.media.stop();
+    if (state.practiceMode === 'memorization')
+      state.recording.payload.memorization = {
+        script: state.script,
+        minutes: Number(state.memorizeMinutes),
+      };
     state.camera = false;
     state.busy = false;
     state.screen = 'processing';
@@ -797,6 +923,9 @@ async function askCoach(message) {
 }
 async function reset() {
   generation++;
+  practiceAttempt++;
+  clearInterval(memoryTick);
+  state.memorizeDeadline = null;
   clearTimeout(poll);
   clearInterval(tick);
   chatController?.abort();
@@ -824,6 +953,7 @@ async function reset() {
     camera: false,
     calibrated: false,
     busy: false,
+    starting: false,
     chat: [],
     phase: 'audio',
     consent: false,
@@ -847,12 +977,14 @@ function revealSections() {
     },
     { threshold: 0.08 },
   );
-  document.querySelectorAll('.public-site main > section:not(#studio)').forEach((section) => {
-    // Above-the-fold content is immediately usable, including on backend health refresh.
-    if (section.getBoundingClientRect().top < innerHeight) return;
-    section.classList.add('reveal');
-    revealObserver.observe(section);
-  });
+  document
+    .querySelectorAll('.public-site main > [data-page]:not([hidden]) > section')
+    .forEach((section) => {
+      // Above-the-fold content is immediately usable, including on backend health refresh.
+      if (section.getBoundingClientRect().top < innerHeight) return;
+      section.classList.add('reveal');
+      revealObserver.observe(section);
+    });
 }
 
 function bindPublic() {
@@ -905,8 +1037,45 @@ function bindPublic() {
 function scrollBehavior() {
   return matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
 }
+function syncPage() {
+  document.querySelectorAll('[data-page]').forEach((page) => {
+    page.hidden = page.dataset.page !== currentPage;
+  });
+  document.querySelector('.site-footer').hidden = currentPage === 'studio';
+  document.querySelectorAll('.site-header a[href^="#"]').forEach((link) => {
+    if (link.hash === '#' + currentPage) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+}
 function goPage(next, updateHistory = true, section = '') {
+  if (next !== 'studio') {
+    if (state.starting) {
+      practiceAttempt++;
+      state.starting = false;
+      state.busy = false;
+      state.screen = 'setup';
+      clearInterval(memoryTick);
+      state.memorizeDeadline = null;
+      render();
+    }
+    if (state.screen === 'memorize') cancelMemorization();
+    else if (state.screen === 'recording')
+      void stopRecording('Practice stopped when you left the studio.');
+    else if (
+      state.busy &&
+      cardController &&
+      state.practiceMode === 'memorization' &&
+      state.screen === 'setup'
+    ) {
+      practiceAttempt++;
+      cardController?.abort();
+      state.cardsStatus = 'idle';
+      state.busy = false;
+      render();
+    }
+  }
   currentPage = next;
+  syncPage();
   const id = section || next;
   if (updateHistory && location.hash !== `#${id}`) history.pushState(null, '', `#${id}`);
   document.title =
@@ -929,7 +1098,7 @@ function goPage(next, updateHistory = true, section = '') {
 function followHash() {
   const id = location.hash.slice(1) || 'home';
   if (['home', 'about', 'studio', 'how-it-works'].includes(id))
-    goPage(id === 'how-it-works' ? 'home' : id, false, id);
+    goPage(id === 'how-it-works' ? 'about' : id, false, id);
 }
 window.addEventListener('hashchange', followHash);
 window.addEventListener('popstate', followHash);
@@ -947,14 +1116,22 @@ document.addEventListener('click', (event) => {
   const id = link.hash.slice(1);
   if (!['home', 'about', 'studio', 'how-it-works'].includes(id)) return;
   event.preventDefault();
-  goPage(id === 'how-it-works' ? 'home' : id, true, id);
+  goPage(id === 'how-it-works' ? 'about' : id, true, id);
 });
 
 document.addEventListener('visibilitychange', () => {
+  if (document.hidden && state.screen === 'memorize') {
+    cancelMemorization();
+    state.success =
+      'Memorization canceled because you left this tab. Begin again when you’re ready.';
+    render();
+  }
   if (document.hidden && state.screen === 'recording')
     void stopRecording('Practice stopped because this tab became hidden.');
 });
 window.addEventListener('pagehide', () => {
+  clearInterval(memoryTick);
+  practiceAttempt++;
   state.media?.dispose();
   cardController?.abort();
   if (state.sessionId)
@@ -965,7 +1142,7 @@ window.addEventListener('pagehide', () => {
   }
 });
 render();
-if (location.hash) requestAnimationFrame(followHash);
+if (location.hash) followHash();
 api('/api/health')
   .then((health) => {
     state.health = health;
