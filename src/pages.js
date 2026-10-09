@@ -39,7 +39,7 @@ function footer() {
 }
 
 function home() {
-  return `<section class="landing-hero"><div class="hero-copy"><p class="eyebrow"><span class="accent-dot"></span>Your speaking studio</p><h1>A little practice.<br>A <em>clearer</em> voice.</h1><p class="hero-description">Find your words. Record a take. Discover one thing to make your next talk better.</p><form id="practice-launcher" class="practice-launcher"><label for="practice-topic">What are you practicing for?</label><div class="launcher-input"><input id="practice-topic" maxlength="400" placeholder="A presentation, an introduction, an idea…"><button class="button primary" id="enter" type="submit">Enter studio ${icon('arrow')}</button></div><div class="occasion-options" aria-label="Choose a practice occasion"><span>Try</span><button type="button" data-topic="Introduce an idea to my class">Class presentation</button><button type="button" data-topic="Introduce myself to someone new">An introduction</button><button type="button" data-topic="Explain something I care about">An idea</button></div></form><div class="hero-baseline"><span>${icon('clock')}Up to 5 minutes</span><span>${icon('shield')}No account needed</span></div></div><div class="voice-art" aria-hidden="true"><div class="art-top"><span>A SPACE FOR YOUR VOICE</span><span>01 — ∞</span></div><div class="art-symbol">${mark}</div><div class="art-bottom"><p>Find your words.<br>Make them heard.</p><span class="art-caption">ONE TAKE AT A TIME</span></div></div></section><section class="journey-strip" aria-label="How to practice">${[
+  return `<section class="landing-hero" id="home"><div class="hero-logo" aria-hidden="true">${mark}</div><div class="hero-copy"><p class="eyebrow"><span class="accent-dot"></span>Your speaking studio</p><h1>A little practice.<br>A <em>clearer</em> voice.</h1><p class="hero-description">Find your words. Record a take. Discover one thing to make your next talk better.</p><form id="practice-launcher" class="practice-launcher"><label for="practice-topic">What are you practicing for?</label><div class="launcher-input"><input id="practice-topic" maxlength="400" placeholder="A presentation, an introduction, an idea…"><button class="button primary" id="enter" type="submit">Enter studio ${icon('arrow')}</button></div><div class="occasion-options" aria-label="Choose a practice occasion"><span>Try</span><button type="button" data-topic="Introduce an idea to my class">Class presentation</button><button type="button" data-topic="Introduce myself to someone new">An introduction</button><button type="button" data-topic="Explain something I care about">An idea</button></div></form><div class="hero-baseline"><span>${icon('clock')}Up to 5 minutes</span><span>${icon('shield')}No account needed</span></div></div></section><section class="journey-strip" aria-label="How to practice">${[
     ['01', 'Prepare', 'Your script, or a draft with AI.', 'edit'],
     ['02', 'Practice', 'A camera. A microphone. Your pace.', 'mic'],
     ['03', 'Review', 'Listen, watch, and choose a next step.', 'headphones'],
@@ -50,18 +50,18 @@ function home() {
     )
     .join(
       '',
-    )}</section><section class="how-section" id="how-it-works"><div class="section-heading"><div><p class="eyebrow">A fresh perspective</p><h2>Less to think about.<br>More to learn from.</h2></div><p>One recording. Three ways to notice what works.</p></div><div class="experience"><div class="experience-toolbar"><span class="content-label">Explore your review</span><div role="tablist" aria-label="Explore review stages">${['audio', 'video', 'combined'].map((phase, i) => `<button role="tab" id="demo-tab-${phase}" data-demo="${phase}" aria-controls="demo-panel" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${icon(examples[phase].icon)}${phase === 'audio' ? 'Listen' : phase === 'video' ? 'Watch' : 'Reflect'}</button>`).join('')}</div></div><div id="demo-panel" class="demo-panel" role="tabpanel" aria-labelledby="demo-tab-audio" tabindex="0">${demoView()}</div></div><a class="text-link how-link" href="#studio">Try it with your own words ${icon('arrow')}</a></section><section class="faq-section"><div><p class="eyebrow">Good to know</p><h2>Your practice.<br>Your choice.</h2><p>Full video stays on your device.</p><a class="text-link" href="#about">Our approach & privacy ${icon('external')}</a></div><div class="faq-list">${[
+    )}</section><section class="how-section" id="how-it-works"><div class="section-heading"><div><p class="eyebrow">A fresh perspective</p><h2>Less to think about.<br>More to learn from.</h2></div><p>One recording. Three ways to notice what works.</p></div><div class="experience"><div class="experience-toolbar"><span class="content-label">Explore your review</span><div role="tablist" aria-label="Explore review stages">${['audio', 'video', 'combined'].map((phase, i) => `<button role="tab" id="demo-tab-${phase}" data-demo="${phase}" aria-controls="demo-panel" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${icon(examples[phase].icon)}${phase === 'audio' ? 'Listen' : phase === 'video' ? 'Watch' : 'Reflect'}</button>`).join('')}</div></div><div id="demo-panel" class="demo-panel" role="tabpanel" aria-labelledby="demo-tab-audio" tabindex="0">${demoView()}</div></div><a class="text-link how-link" href="#studio">Try it with your own words ${icon('arrow')}</a></section><section class="faq-section"><div><p class="eyebrow">Good to know</p><h2>Your practice.<br>A clear next step.</h2><p>Full video stays on your device.</p><a class="text-link" href="#about">Our approach & privacy ${icon('external')}</a></div><div class="faq-list">${[
     [
       'What do I need?',
       'A camera, microphone, and desktop Chrome or Edge. Bring your own script or draft one with AI. Each recording can last up to five minutes. You can prepare a script on mobile; mobile recording is not yet validated.',
     ],
     [
-      'Can I practice without AI?',
-      'Yes. Write, record, and replay locally without cloud processing. AI drafting and reviews need a configured Gemini service and available quota.',
+      'Is AI review required?',
+      'Every recorded practice includes AI review. Accept the cloud-processing disclosure before enabling devices or recording. A configured Gemini service and available quota are required; you can still write a script while AI is unavailable.',
     ],
     [
       'What is shared with AI?',
-      'Only with your consent: audio and up to 20 resized still frames. Full video stays in your browser. Google’s free service may use shared content for product improvement and human review. Use non-sensitive material.',
+      'With your required consent: your script for talking-point cards, audio, and up to 20 resized still frames. Full video stays in your browser. Google’s free service may use shared content for product improvement and human review. Use non-sensitive material.',
     ],
     [
       'Does Heard measure confidence?',
@@ -73,7 +73,7 @@ function home() {
 }
 
 function about() {
-  return `<section class="about-hero"><p class="eyebrow">The Heard approach</p><h1>Your voice.<br>A little more <em>room.</em></h1><p>A place to rehearse without an audience.<br>One attempt. One observation. One useful next step.</p></section><section class="approach-grid">${[
+  return `<section class="about-hero" id="about"><p class="eyebrow">The Heard approach</p><h1>Your voice.<br>A little more <em>room.</em></h1><p>A place to rehearse without an audience.<br>One attempt. One observation. One useful next step.</p></section><section class="approach-grid">${[
     [
       'edit',
       'Start with your words.',
@@ -96,9 +96,9 @@ function about() {
     )
     .join(
       '',
-    )}</section><section class="privacy-section"><div><p class="eyebrow">Privacy, plainly</p><h2>You choose<br>what leaves your device.</h2></div><div><article><h3>Local by default</h3><p>Write, record, and replay without sharing recording media. Drafts stay in this tab. Recordings are cleared when you reset or close the page.</p></article><article><h3>AI is an opt-in</h3><p>AI drafting sends your topic and audience to Gemini. Recording review shares audio and up to 20 resized still frames only with consent. Full video is never uploaded.</p></article><article><h3>Know the trade-off</h3><p>Google’s free service may use content for product improvement and human review. Use non-sensitive practice material. Uploaded audio is deleted after processing; provider deletion failures are shown.</p><a class="text-link" href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">Read Gemini’s data terms ${icon('external')}</a></article></div></section><section class="about-cta"><h2>Give your next talk<br>a practice run.</h2><a class="button primary" href="#studio">Open studio ${icon('arrow')}</a></section>`;
+    )}</section><section class="privacy-section"><div><p class="eyebrow">Privacy, plainly</p><h2>You choose<br>what leaves your device.</h2></div><div><article><h3>Video stays local</h3><p>Write your script locally. Full video and playback stay in your browser. Drafts stay in this tab. Recordings are cleared when you reset or close the page.</p></article><article><h3>Consent before practice</h3><p>Every practice includes AI review and requires your consent. AI drafting sends your topic and audience to Gemini. Talking-point cards share your script; recording review shares audio and up to 20 resized still frames. Full video is never uploaded.</p></article><article><h3>Know the trade-off</h3><p>Google’s free service may use content for product improvement and human review. Use non-sensitive practice material. Uploaded audio is deleted after processing; provider deletion failures are shown.</p><a class="text-link" href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">Read Gemini’s data terms ${icon('external')}</a></article></div></section><section class="about-cta"><h2>Give your next talk<br>a practice run.</h2><a class="button primary" href="#studio">Open studio ${icon('arrow')}</a></section>`;
 }
 
 export function publicPage(page) {
-  return `<div class="public-site" id="${page}">${navigation(page)}<main id="page-content" tabindex="-1">${page === 'about' ? about() : home()}</main>${footer()}</div>`;
+  return `<div class="public-site">${navigation(page)}<main id="page-content" tabindex="-1">${home()}${about()}<section class="studio-section" id="studio" aria-label="Speaking studio"><div id="studio-content"></div></section></main>${footer()}</div>`;
 }

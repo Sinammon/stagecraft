@@ -5,7 +5,7 @@ console.log(`Heard: ${process.env.APP_ORIGIN || 'http://localhost:3000'}`);
 console.log(
   process.env.GEMINI_API_KEY
     ? 'Gemini configured. Check project quotas before cloud processing.'
-    : 'Recording works locally. Add GEMINI_API_KEY to .env for AI features.',
+    : 'Script preparation is available. Add GEMINI_API_KEY to .env to enable AI practice.',
 );
 for (const signal of ['SIGINT', 'SIGTERM'])
   process.on(signal, () => {

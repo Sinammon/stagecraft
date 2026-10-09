@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { mockAIPractice } from './fixtures.js';
 
 test('homepage topic carries into a usable draft and persists across refresh', async ({ page }) => {
   await page.route('**/api/health', (route) =>
@@ -58,35 +59,40 @@ test('malformed draft responses preserve the existing script and offer recovery'
   await expect(page.getByRole('button', { name: 'Generate a draft' })).toBeEnabled();
 });
 
-test('local practice creates no cloud session or upload even when AI is enabled', async ({
-  page,
-}) => {
-  await page.route('**/api/health', (route) =>
-    route.fulfill({ json: { ok: true, aiConfigured: true } }),
-  );
+test('practice requires explicit AI consent before devices or sessions', async ({ page }) => {
+  await mockAIPractice(page);
   const cloudRequests = [];
   page.on('request', (request) => {
     if (request.url().includes('/api/sessions')) cloudRequests.push(request.url());
   });
   await page.goto('/#studio');
+  await page.getByLabel('Your practice script').fill('A short practice with required AI review.');
+  await page.getByRole('button', { name: 'Set up my recording' }).click();
+  await expect(page.locator('#consent')).not.toBeChecked();
+  await expect(page.getByRole('button', { name: 'Enable camera & microphone' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Start practice' })).toBeDisabled();
+  await expect(page.getByText(/Consent is required before enabling devices/)).toBeVisible();
+  expect(cloudRequests).toEqual([]);
+  await page.locator('#consent').check();
+  await expect(page.getByRole('button', { name: 'Enable camera & microphone' })).toBeEnabled();
+  await page.locator('#consent').uncheck();
+  await expect(page.getByRole('button', { name: 'Enable camera & microphone' })).toBeDisabled();
+});
+
+test('missing AI blocks practice while preserving script preparation', async ({ page }) => {
+  await page.route('**/api/health', (route) =>
+    route.fulfill({ json: { ok: true, aiConfigured: false } }),
+  );
+  await page.goto('/#studio');
   await page
     .getByLabel('Your practice script')
-    .fill('A short local practice that stays on my device.');
+    .fill('Prepare this script while AI is unavailable.');
   await page.getByRole('button', { name: 'Set up my recording' }).click();
-  await page.getByRole('button', { name: 'Enable camera & microphone' }).click();
-  await expect(page.getByRole('button', { name: 'Start practice' })).toBeEnabled({
-    timeout: 20000,
-  });
-  await expect(page.locator('#consent')).not.toBeChecked();
-  await page.getByRole('button', { name: 'Start practice' }).click();
-  await expect(page.locator('#timer')).not.toHaveText('00:00');
-  await expect(page.locator('#live-score')).toHaveText('—');
-  await expect(page.locator('#score-explanation')).toContainText('Local practice');
-  await page.getByRole('button', { name: 'Finish practice' }).click();
-  await expect(page.locator('audio')).toBeVisible();
-  await expect(page.getByText(/This was a local practice/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Retry AI analysis' })).toHaveCount(0);
-  expect(cloudRequests).toEqual([]);
+  await expect(page.locator('#consent')).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Enable camera & microphone' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Start practice' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Back to script' }).click();
+  await expect(page.getByLabel('Your practice script')).toHaveValue(/Prepare this script/);
 });
 
 test('script source tabs support arrow-key selection', async ({ page }) => {
@@ -107,7 +113,7 @@ test('home, about, studio, and setup fit phone and tablet viewports', async ({ p
     await page.setViewportSize({ width, height: 900 });
     for (const route of ['/', '/#about', '/#studio']) {
       await page.goto(route);
-      await expect(page.locator('h1')).toBeVisible();
+      await expect(page.locator('#workspace h1')).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );
@@ -125,6 +131,7 @@ test('home, about, studio, and setup fit phone and tablet viewports', async ({ p
 test('three-stage studio navigation and denied devices keep preparation recoverable', async ({
   page,
 }) => {
+  await mockAIPractice(page);
   await page.addInitScript(() => {
     navigator.mediaDevices.getUserMedia = async () => {
       throw new DOMException('Permission denied', 'NotAllowedError');
@@ -138,6 +145,7 @@ test('three-stage studio navigation and denied devices keep preparation recovera
   await page.getByLabel('Your practice script').fill('Keep this script when device access fails.');
   await page.getByRole('button', { name: 'Set up my recording' }).click();
   await expect(steps.locator('[aria-current="step"]')).toContainText('Practice');
+  await page.locator('#consent').check();
   await page.getByRole('button', { name: 'Enable camera & microphone' }).click();
   await expect(page.getByRole('alert')).toContainText('access was denied');
   await expect(page.getByRole('button', { name: 'Start practice' })).toBeDisabled();

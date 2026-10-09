@@ -20,7 +20,7 @@ video, watch without audio, then combine the observations into one practical nex
 
 Existing stack: JavaScript, Vite, Fastify, Gemini, MediaPipe, and Pitchy. Keep the existing stack and
 hash navigation. Full video stays in the browser. Cloud review uses audio and up to twenty resized
-images with explicit consent. Scores come from a deterministic rubric, never an AI opinion. Missing
+images with required explicit consent. Every recording requests AI analysis; practice is unavailable without a configured AI service. After a read-through, Gemini summarizes the script into adaptive talking-point cards. Scores come from a deterministic rubric, never an AI opinion. Missing
 evidence produces an unavailable score. Camera observations cannot measure internal confidence.
 
 Recording is supported in desktop Chromium browsers over localhost or HTTPS. Pages must work on

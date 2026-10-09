@@ -1,6 +1,5 @@
 import './style.css';
 import { icon } from './icons.js';
-import { brand } from './brand.js';
 import { publicPage, demoView } from './pages.js';
 import { api, post, streamChat } from './api.js';
 import { PracticeMedia } from './media.js';
@@ -8,12 +7,13 @@ import { escape, wordCount, readingTime } from './text.js';
 import { loadDraft, saveDraft } from './draft.js';
 import { scriptView as prepareView, setupView as sceneView } from './studio-views.js';
 import { parseReport } from '../shared/reports.js';
+import { flashcardsSchema } from '../shared/flashcards.js';
 
 const formatTime = (ms) =>
   `${String(Math.floor(ms / 60000)).padStart(2, '0')}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 const $ = (id) => document.getElementById(id);
 const state = {
-  screen: 'welcome',
+  screen: 'script',
   script: '',
   scriptTab: 'write',
   topic: '',
@@ -37,12 +37,18 @@ const state = {
   transcript: '',
   interim: '',
   chat: [],
+  flashcards: [],
+  cardScript: '',
+  cardsStatus: 'idle',
+  cardsError: '',
+  readScript: '',
   ...loadDraft(),
 };
 let generation = 0,
   tick,
   poll,
-  chatController;
+  chatController,
+  cardController;
 
 let currentPage =
   location.hash === '#about' ? 'about' : location.hash === '#studio' ? 'studio' : 'home';
@@ -55,16 +61,15 @@ function render() {
       : currentPage === 'home'
         ? 'Heard — A little practice. A clearer voice.'
         : 'Speaking studio — Heard';
-  if (currentPage !== 'studio') {
+  if (!$('studio-content')) {
     $('app').innerHTML = publicPage(currentPage);
     bindPublic();
     revealSections();
-    return;
   }
   const currentStep =
     state.screen === 'script' ? 0 : ['setup', 'recording'].includes(state.screen) ? 1 : 2;
-  $('app').innerHTML =
-    `<div class="app-shell"><a class="skip-link" href="#workspace">Skip to content</a><header class="studio-header"><a class="brand" href="#home" aria-label="Heard home">${brand}</a><nav aria-label="Practice progress"><ol class="steps">${['Prepare', 'Practice', 'Review'].map((label, i) => `<li class="step ${i === currentStep ? 'active' : i < currentStep ? 'done' : ''}" ${i === currentStep ? 'aria-current="step"' : ''}><span class="step-number">${i < currentStep ? icon('check') : String(i + 1).padStart(2, '0')}</span><span>${label}</span></li>`).join('')}</ol></nav><nav class="studio-site-links" aria-label="Website navigation"><a href="#home">Home</a><a href="#about">Our approach</a></nav></header><div class="shell-main"><header class="topbar"><span class="connection ${state.health && !state.health.aiConfigured ? 'connection-warning' : ''}">${icon(state.health?.aiConfigured ? 'spark' : 'shield')} ${state.health ? (state.health.aiConfigured ? 'AI available' : 'Local practice · AI unavailable') : 'Connecting…'}</span></header><main class="workspace" id="workspace" tabindex="-1" aria-busy="${state.busy}">${state.error ? `<div class="error-banner" role="alert">${escape(state.error)}</div>` : ''}${state.success ? `<div class="success-banner" role="status">${escape(state.success)}</div>` : ''}${{ script: scriptView, setup: setupView, recording: recordingView, processing: processingView, review: reviewView }[state.screen]()}</main></div></div>`;
+  $('studio-content').innerHTML =
+    `<div class="app-shell"><header class="studio-header"><nav aria-label="Practice progress"><ol class="steps">${['Prepare', 'Practice', 'Review'].map((label, i) => `<li class="step ${i === currentStep ? 'active' : i < currentStep ? 'done' : ''}" ${i === currentStep ? 'aria-current="step"' : ''}><span class="step-number">${i < currentStep ? icon('check') : String(i + 1).padStart(2, '0')}</span><span>${label}</span></li>`).join('')}</ol></nav><span class="connection ${state.health && !state.health.aiConfigured ? 'connection-warning' : ''}">${icon(state.health?.aiConfigured ? 'spark' : 'shield')} ${state.health ? (state.health.aiConfigured ? 'AI review included' : 'AI unavailable · practice paused') : 'Checking AI availability…'}</span></header><div class="shell-main"><div class="workspace" id="workspace" tabindex="-1" aria-busy="${state.busy}">${state.error ? `<div class="error-banner" role="alert">${escape(state.error)}</div>` : ''}${state.success ? `<div class="success-banner" role="status">${escape(state.success)}</div>` : ''}${{ script: scriptView, setup: setupView, recording: recordingView, processing: processingView, review: reviewView }[state.screen]()}</div></div></div>`;
   bind();
   if (state.screen === 'recording' || (state.screen === 'setup' && state.camera)) attachPreview();
   document
@@ -84,11 +89,85 @@ function previewMarkup(recording = false) {
   return `<div class="video-box preview"><video id="preview" autoplay muted playsinline aria-label="Mirrored camera preview"></video><canvas id="pose-overlay" aria-hidden="true"></canvas>${!state.camera ? `<div class="video-placeholder">${icon('video')}<p>Your camera preview will appear here</p></div>` : ''}<span class="preview-tag">${recording ? 'PRACTICE IN PROGRESS' : 'CAMERA PREVIEW'}</span><div class="preview-bottom"><span class="tracking-label" id="tracking">${state.calibrated ? 'Calibrated to your baseline' : 'Calibrate your neutral posture'}</span><div class="level-bars" id="level-bars" aria-label="Microphone activity">${Array.from({ length: 12 }, () => '<span></span>').join('')}</div></div></div>`;
 }
 function setupView() {
-  return sceneView(state, head, previewMarkup);
+  return sceneView(state, head, previewMarkup) + `<div id="practice-cards">${cardsMarkup()}</div>`;
 }
 function recordingView() {
-  return `${head('02 / Practice', 'All yours.', 'Focus on your message. Live measurements are provisional.')}<div class="recording-grid"><section class="recording-main">${previewMarkup(true)}<div class="recording-toolbar"><span class="timer"><i class="recording-dot" aria-hidden="true"></i><span id="timer">00:00</span><small>/ 05:00</small></span><button class="button stop" id="stop-recording">${icon('stop')}Finish practice</button></div><section class="script-follow"><p class="content-label">Your script</p><p>${escape(state.script)}</p></section><section class="panel" style="margin-top:20px;padding:22px"><h3>Live transcript</h3><div class="transcript" id="transcript" aria-live="off">${state.sessionId ? 'Your words will appear as the transcript is finalized.' : 'Local practice. Your audio stays in this browser; live transcription is off.'}</div></section></section><aside class="recording-aside"><div class="score-panel"><p class="content-label">Live practice score</p><div class="score-value"><strong id="live-score">—</strong><span id="score-state">Collecting evidence</span></div><div class="score-meter" aria-hidden="true"><span id="score-progress" style="transform:scaleX(0)"></span></div><p id="score-explanation">A score appears when speech and posture provide enough usable evidence.</p></div><div class="live-stats"><div class="stat-row"><span>Filler words</span><strong id="filler-count">—</strong></div><div class="stat-row"><span>Pace · words/min</span><strong id="pace-value">—</strong></div><div class="stat-row"><span>Posture</span><strong id="posture-value">${state.calibrated ? 'Tracking' : 'Unavailable'}</strong></div><div class="stat-row"><span>Voice activity</span><strong id="voice-value">Listening</strong></div></div><p class="inline-status" id="live-status" role="status" style="margin-top:16px">${state.sessionId ? 'Preparing live transcription…' : 'Local recording · cloud processing is off.'}</p></aside></div>`;
+  return `${head('02 / Practice', 'All yours.', 'Focus on your message. Live measurements are provisional.')}<div class="recording-grid"><section class="recording-main">${previewMarkup(true)}<div class="recording-toolbar"><span class="timer"><i class="recording-dot" aria-hidden="true"></i><span id="timer">00:00</span><small>/ 05:00</small></span><button class="button stop" id="stop-recording">${icon('stop')}Finish practice</button></div><div id="practice-cards">${cardsMarkup()}</div><details class="script-follow" id="recording-script" ${state.flashcards.length && state.cardScript === state.script ? '' : 'open'}><summary>${state.flashcards.length && state.cardScript === state.script ? 'Show full script' : 'First take · read your script'}</summary><p>${escape(state.script)}</p><p class="local-hint">Finish this take to receive AI talking-point cards for your next practice.</p></details><section class="panel" style="margin-top:20px;padding:22px"><h3>Live transcript</h3><div class="transcript" id="transcript" aria-live="off">${state.sessionId ? 'Your words will appear as the transcript is finalized.' : 'Live transcription is unavailable. Final AI review uses your recorded audio.'}</div></section></section><aside class="recording-aside"><div class="score-panel"><p class="content-label">Live practice score</p><div class="score-value"><strong id="live-score">—</strong><span id="score-state">Collecting evidence</span></div><div class="score-meter" aria-hidden="true"><span id="score-progress" style="transform:scaleX(0)"></span></div><p id="score-explanation">A score appears when speech and posture provide enough usable evidence.</p></div><div class="live-stats"><div class="stat-row"><span>Filler words</span><strong id="filler-count">—</strong></div><div class="stat-row"><span>Pace · words/min</span><strong id="pace-value">—</strong></div><div class="stat-row"><span>Posture</span><strong id="posture-value">${state.calibrated ? 'Tracking' : 'Unavailable'}</strong></div><div class="stat-row"><span>Voice activity</span><strong id="voice-value">Listening</strong></div></div><p class="inline-status" id="live-status" role="status" style="margin-top:16px">${state.sessionId ? 'Preparing live transcription…' : 'Final AI analysis is included in this practice.'}</p></aside></div>`;
 }
+function cardsMarkup() {
+  if (state.cardsStatus === 'loading')
+    return `<section class="flashcards-section" aria-live="polite"><p class="content-label">Practice from ideas</p><p><span class="spinner"></span> Finding your main talking points…</p></section>`;
+  if (state.flashcards.length && state.cardScript === state.script)
+    return `<section class="flashcards-section" aria-labelledby="cards-heading"><div class="cards-heading"><div><p class="eyebrow">Your next take</p><h2 id="cards-heading">Speak from ideas.</h2><p>Use these ${state.flashcards.length} talking points as cues. Explain each one in your own words.</p></div><span class="pill">AI talking points</span></div><ol class="flashcard-grid">${state.flashcards.map((point, i) => `<li class="flashcard"><span class="content-label">${String(i + 1).padStart(2, '0')}</span><h3>${escape(point.title)}</h3><p>${escape(point.cue)}</p></li>`).join('')}</ol></section>`;
+  if (state.cardsStatus === 'failed')
+    return `<section class="flashcards-section"><h2>Talking points unavailable</h2><p role="status">${escape(state.cardsError)}</p><button class="button secondary" data-retry-cards ${!state.consent || !state.health?.aiConfigured ? 'disabled' : ''}>Retry talking points</button><p class="local-hint">You can continue using your script.</p></section>`;
+  if (state.screen !== 'setup') return '';
+  return `<section class="flashcards-section read-through"><p class="eyebrow">From script to conversation</p><h2>Read it once. Then make it yours.</h2><p>Read your script aloud, then confirm below. AI will turn its main ideas into 3 talking points, adding more for longer or complex scripts. Your first recorded take also creates these automatically.</p><details class="script-follow"><summary>Read your script</summary><p>${escape(state.script)}</p></details><button class="button secondary" id="read-once" ${!state.consent || !state.health?.aiConfigured || state.busy ? 'disabled' : ''}>${icon('spark')}I’ve read my script once</button></section>`;
+}
+function refreshCards() {
+  const region = $('practice-cards');
+  if (region) region.innerHTML = cardsMarkup();
+  if (state.cardsStatus === 'ready' && $('recording-script')) $('recording-script').open = false;
+}
+function invalidateCards() {
+  cardController?.abort();
+  cardController = null;
+  Object.assign(state, {
+    flashcards: [],
+    cardScript: '',
+    cardsStatus: 'idle',
+    cardsError: '',
+    readScript: '',
+  });
+}
+async function generateCards() {
+  if (
+    !state.consent ||
+    !state.health?.aiConfigured ||
+    state.readScript !== state.script ||
+    state.cardsStatus === 'loading'
+  )
+    return;
+  if (state.cardScript === state.script && state.flashcards.length) return;
+  const script = state.script;
+  const controller = new AbortController();
+  cardController = controller;
+  state.cardsStatus = 'loading';
+  state.cardsError = '';
+  refreshCards();
+  try {
+    const result = flashcardsSchema.parse(
+      await api('/api/flashcards', {
+        method: 'POST',
+        body: JSON.stringify({ script, cloudConsent: true }),
+        signal: controller.signal,
+      }),
+    );
+    if (controller.signal.aborted || script !== state.script) return;
+    state.flashcards = result.points;
+    state.cardScript = script;
+    state.cardsStatus = 'ready';
+  } catch (error) {
+    if (controller.signal.aborted || script !== state.script) return;
+    state.cardsStatus = 'failed';
+    state.cardsError =
+      error.name === 'ZodError' ? 'The talking points were incomplete. Try again.' : error.message;
+  } finally {
+    if (cardController === controller) {
+      cardController = null;
+      refreshCards();
+    }
+  }
+}
+document.addEventListener('click', (event) => {
+  if (event.target.closest('[data-retry-cards]')) void generateCards();
+  // This region can refresh independently while devices and playback stay attached.
+  if (event.target.closest('#read-once')) {
+    state.readScript = state.script;
+    void generateCards();
+  }
+});
+
 function processingView() {
   const stages = state.report?.stages || {};
   const stageItem = (key, label) => {
@@ -191,7 +270,7 @@ function reviewView() {
           )
           .join('')}</div></section>`
       : ''
-  }${stage === 'combined' ? rubricMarkup() + chatMarkup() : `<details class="rubric"><summary>${stage === 'audio' ? 'Read the complete transcript' : 'How posture feedback is measured'}</summary><p>${stage === 'audio' ? escape(state.report?.transcript || 'The transcript will appear after Gemini finishes audio processing.') : 'Measurements compare visible head, shoulder, and torso alignment with your neutral baseline. Low-visibility frames are excluded; this does not measure your internal confidence.'}</p></details>`}${state.report?.cleanupWarning ? `<p class="notice error">${escape(state.report.cleanupWarning)}</p>` : ''}<div class="review-actions"><button class="button secondary" id="reset">${icon('reset')}New practice</button>${stage !== 'combined' ? `<button class="button primary" data-phase="${stage === 'audio' ? 'video' : 'combined'}">${stage === 'audio' ? 'Watch my delivery' : 'Bring it together'}</button>` : ''}</div></section>${feedbackMarkup(stage)}</div><p class="footer-note">${icon('shield')}Your local recording is cleared when you reset or close this page. Google’s data-use terms apply to cloud processing.</p>`;
+  }${stage === 'combined' ? rubricMarkup() + chatMarkup() : `<details class="rubric"><summary>${stage === 'audio' ? 'Read the complete transcript' : 'How posture feedback is measured'}</summary><p>${stage === 'audio' ? escape(state.report?.transcript || 'The transcript will appear after Gemini finishes audio processing.') : 'Measurements compare visible head, shoulder, and torso alignment with your neutral baseline. Low-visibility frames are excluded; this does not measure your internal confidence.'}</p></details>`}${state.report?.cleanupWarning ? `<p class="notice error">${escape(state.report.cleanupWarning)}</p>` : ''}<div class="review-actions"><button class="button secondary" id="reset">${icon('reset')}New practice</button>${stage !== 'combined' ? `<button class="button primary" data-phase="${stage === 'audio' ? 'video' : 'combined'}">${stage === 'audio' ? 'Watch my delivery' : 'Bring it together'}</button>` : ''}</div></section>${feedbackMarkup(stage)}</div><div id="practice-cards">${cardsMarkup()}</div><p class="footer-note">${icon('shield')}Your local recording is cleared when you reset or close this page. Google’s data-use terms apply to cloud processing.</p>`;
 }
 function metric(label, value, note) {
   return `<div class="metric"><span class="label">${label}</span><strong>${value}</strong><small>${note}</small></div>`;
@@ -211,6 +290,7 @@ function bind() {
     $('generate-tab')?.focus();
   });
   on('script', 'input', (event) => {
+    invalidateCards();
     state.script = event.target.value;
     const count = wordCount(state.script);
     $('word-count').textContent = `${count} words`;
@@ -253,6 +333,7 @@ function bind() {
         result.script.length > 15000
       )
         throw new Error('The draft was incomplete. Try generating it again.');
+      invalidateCards();
       state.script = result.script;
       saveDraft(state);
       state.success = 'Your draft is ready. Read it out loud and make it your own.';
@@ -291,7 +372,12 @@ function bind() {
   on('stop-recording', 'click', () => stopRecording());
   on('consent', 'change', (event) => {
     state.consent = event.target.checked;
-    $('start-recording').disabled = !state.camera || state.busy;
+    if (!state.consent) {
+      invalidateCards();
+      void state.media?.dispose();
+      state.camera = false;
+      state.calibrated = false;
+    }
     render();
   });
   document.querySelectorAll('input[name="mode"]').forEach((input) =>
@@ -345,12 +431,12 @@ function navigate(screen) {
   state.success = '';
   state.screen = screen;
   render();
-  const heading = document.querySelector('main h1');
+  const heading = document.querySelector('#workspace h1');
   if (heading) {
     heading.tabIndex = -1;
     heading.focus({ preventScroll: true });
   }
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  $('studio').scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
 }
 function attachPreview() {
   const video = $('preview');
@@ -383,7 +469,7 @@ async function fillDevices() {
   }
 }
 async function enableCamera(devices = {}) {
-  if (state.busy) return;
+  if (state.busy || !state.consent || !state.health?.aiConfigured) return;
   state.busy = true;
   state.error = '';
   state.cameraStatus = 'Requesting device access…';
@@ -521,7 +607,7 @@ function updateScore(score) {
         ? 'A provisional running score. Final analysis checks word timing and may change it.'
         : state.sessionId
           ? 'A score needs 50 finalized words, 30 seconds of speech, and 80% usable posture tracking.'
-          : 'Local practice has no live transcript. Listen and watch your recording for your next step.';
+          : 'Live transcription is unavailable. Final AI analysis will use the recorded audio.';
   if ($('filler-count'))
     $('filler-count').textContent = state.media?.liveReady ? score.fillers : '—';
   if ($('pace-value'))
@@ -529,20 +615,19 @@ function updateScore(score) {
       state.media?.liveReady && score.elapsed > 5000 ? Math.round(score.pace) : '—';
 }
 async function startRecording() {
-  if (state.busy || !state.camera) return;
+  if (state.busy || !state.camera || !state.consent || !state.health?.aiConfigured) return;
   state.busy = true;
   state.error = '';
   try {
-    const cloud = state.consent && state.health?.aiConfigured;
-    const session = cloud ? await post('/api/sessions', { cloudConsent: true }) : null;
-    if (cloud && typeof session?.id !== 'string')
+    const session = await post('/api/sessions', { cloudConsent: true });
+    if (typeof session?.id !== 'string')
       throw new Error('The practice session could not be created. Please try again.');
     state.sessionId = session?.id || null;
     state.transcript = '';
     state.interim = '';
     state.busy = false;
     navigate('recording');
-    state.media.start(state.sessionId, Boolean(state.sessionId));
+    state.media.start(state.sessionId, true);
   } catch (e) {
     if (state.sessionId)
       void api(`/api/sessions/${state.sessionId}`, { method: 'DELETE' }).catch(() => {});
@@ -569,7 +654,9 @@ async function stopRecording(message = '') {
     state.screen = 'processing';
     render();
     if (message) state.cameraStatus = message;
+    state.readScript = state.script;
     await analyze();
+    void generateCards();
   } catch (e) {
     state.busy = false;
     state.error = e.message;
@@ -580,10 +667,10 @@ async function analyze() {
   if (!state.recording) return;
   if (!state.sessionId) {
     state.report = {
-      status: 'local',
+      status: 'failed',
       stages: {},
       error:
-        'This was a local practice. Listen and watch your recording, then choose something to try next. Opt into AI review during setup for a future take.',
+        'The AI session is unavailable. Your playback is safe in this browser. Start a new practice to reconnect.',
     };
     state.phase = 'audio';
     state.screen = 'review';
@@ -713,6 +800,8 @@ async function reset() {
   clearTimeout(poll);
   clearInterval(tick);
   chatController?.abort();
+  cardController?.abort();
+  if (state.cardsStatus === 'loading') state.cardsStatus = 'idle';
   await state.media?.dispose();
   const id = state.sessionId;
   state.sessionId = null;
@@ -741,7 +830,7 @@ async function reset() {
     transcript: '',
     interim: '',
   });
-  render();
+  navigate('script');
 }
 let revealObserver;
 function revealSections() {
@@ -758,7 +847,7 @@ function revealSections() {
     },
     { threshold: 0.08 },
   );
-  document.querySelectorAll('.public-site main > section').forEach((section) => {
+  document.querySelectorAll('.public-site main > section:not(#studio)').forEach((section) => {
     // Above-the-fold content is immediately usable, including on backend health refresh.
     if (section.getBoundingClientRect().top < innerHeight) return;
     section.classList.add('reveal');
@@ -769,12 +858,17 @@ function revealSections() {
 function bindPublic() {
   $('practice-launcher')?.addEventListener('submit', (event) => {
     event.preventDefault();
+    if (state.screen !== 'script' || state.busy) {
+      goPage('studio');
+      return;
+    }
     const topic = $('practice-topic').value.trim();
     if (topic) {
       state.topic = topic;
       state.scriptTab = 'generate';
       saveDraft(state);
     }
+    render();
     void goPage('studio');
   });
   document.querySelectorAll('[data-topic]').forEach((button) =>
@@ -808,43 +902,52 @@ function bindPublic() {
     });
   });
 }
-let routeGeneration = 0;
-async function goPage(next, updateHistory = true, section = '') {
-  if (currentPage === 'studio' && (state.screen === 'recording' || state.busy)) {
-    history.replaceState(null, '', '#studio');
-    state.error =
-      state.screen === 'recording'
-        ? 'Finish your practice before leaving the studio.'
-        : 'Please wait for the current studio action to finish.';
-    render();
-    return;
-  }
-  const token = ++routeGeneration;
-  if (currentPage === 'studio' && next !== 'studio' && state.camera) {
-    await state.media?.dispose();
-    state.camera = false;
-    state.calibrated = false;
-  }
-  if (token !== routeGeneration) return;
+function scrollBehavior() {
+  return matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+}
+function goPage(next, updateHistory = true, section = '') {
   currentPage = next;
-  if (next === 'studio' && state.screen === 'welcome') state.screen = 'script';
-  state.error = '';
-  if (updateHistory) history.pushState(null, '', `#${next}`);
-  render();
-  const target = section ? $(section) : null;
-  if (target) target.scrollIntoView({ behavior: 'instant', block: 'start' });
-  else window.scrollTo({ top: 0, behavior: 'instant' });
-  const heading = document.querySelector('main h1');
-  if (!section && heading) {
-    heading.tabIndex = -1;
-    heading.focus({ preventScroll: true });
+  const id = section || next;
+  if (updateHistory && location.hash !== `#${id}`) history.pushState(null, '', `#${id}`);
+  document.title =
+    next === 'studio'
+      ? 'Speaking studio — Heard'
+      : next === 'about'
+        ? 'Our approach — Heard'
+        : 'Heard — A little practice. A clearer voice.';
+  document.querySelectorAll('.site-nav a').forEach((link) => {
+    if (link.hash === `#${id}`) link.setAttribute('aria-current', 'location');
+    else link.removeAttribute('aria-current');
+  });
+  const target = $(id);
+  target?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+  if (target) {
+    target.tabIndex = -1;
+    target.focus({ preventScroll: true });
   }
 }
-window.addEventListener('hashchange', () => {
-  const hash = location.hash;
-  if (hash === '#page-content' || hash === '#workspace') return;
-  const next = hash === '#about' ? 'about' : hash === '#studio' ? 'studio' : 'home';
-  void goPage(next, false, hash === '#how-it-works' ? 'how-it-works' : '');
+function followHash() {
+  const id = location.hash.slice(1) || 'home';
+  if (['home', 'about', 'studio', 'how-it-works'].includes(id))
+    goPage(id === 'how-it-works' ? 'home' : id, false, id);
+}
+window.addEventListener('hashchange', followHash);
+window.addEventListener('popstate', followHash);
+document.addEventListener('click', (event) => {
+  const link = event.target.closest('a[href^="#"]');
+  if (
+    !link ||
+    event.defaultPrevented ||
+    event.ctrlKey ||
+    event.metaKey ||
+    event.shiftKey ||
+    event.altKey
+  )
+    return;
+  const id = link.hash.slice(1);
+  if (!['home', 'about', 'studio', 'how-it-works'].includes(id)) return;
+  event.preventDefault();
+  goPage(id === 'how-it-works' ? 'home' : id, true, id);
 });
 
 document.addEventListener('visibilitychange', () => {
@@ -853,6 +956,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('pagehide', () => {
   state.media?.dispose();
+  cardController?.abort();
   if (state.sessionId)
     void fetch(`/api/sessions/${state.sessionId}`, { method: 'DELETE', keepalive: true });
   if (state.recording) {
@@ -861,12 +965,11 @@ window.addEventListener('pagehide', () => {
   }
 });
 render();
-if (location.hash === '#how-it-works')
-  requestAnimationFrame(() => $('how-it-works')?.scrollIntoView());
+if (location.hash) requestAnimationFrame(followHash);
 api('/api/health')
   .then((health) => {
     state.health = health;
-    if (currentPage === 'studio' && ['script', 'setup'].includes(state.screen)) render();
+    if (['script', 'setup'].includes(state.screen)) render();
   })
   .catch(() => {
     state.error = 'The studio backend is unavailable. Start the app with pnpm dev or pnpm start.';

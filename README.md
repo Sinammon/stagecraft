@@ -1,6 +1,6 @@
 # Heard
 
-A speaking practice studio for students and everyday conversations, built with HTML, CSS, JavaScript, MediaPipe, Fastify, and Gemini. Practice a class presentation, introduction, or idea. Full video remains on the device. With explicit consent, Gemini receives audio and selected still frames for the three review stages.
+A speaking practice studio for students and everyday conversations, built with HTML, CSS, JavaScript, MediaPipe, Fastify, and Gemini. Practice a class presentation, introduction, or idea. Full video remains on the device. Every recorded practice requires explicit AI consent. Gemini receives the script for talking-point flashcards, plus audio and selected still frames for the three review stages.
 
 ## Run locally
 
@@ -14,7 +14,7 @@ Copy-Item .env.example .env
 pnpm dev
 ```
 
-Open http://localhost:5173. Camera permissions work on localhost; any remote deployment requires HTTPS. You can write a script and record locally without a key; AI generation, transcription, feedback, and chat require the key. Missing AI never produces fake feedback or a verified score.
+Open http://localhost:5173. Camera permissions work on localhost; any remote deployment requires HTTPS. You can write a script without a key. Enabling camera/microphone and recording require AI consent and a configured Gemini service. Every take automatically requests AI analysis; unavailable AI or exhausted quota produces a visible failure, while any completed local playback remains usable. Missing AI never produces fake feedback or a verified score.
 
 Create the free API key at https://aistudio.google.com/apikey. Keep it in `.env` on the server, never in frontend code. Do not send your key in chat or commit `.env`.
 
@@ -41,9 +41,10 @@ Read your active request, token, and daily quotas in Google AI Studio, then set 
 
 ## Privacy and lifecycle
 
-Local recording creates no cloud session and sends no media to the backend. AI review requires a configured server key and explicit cloud-processing consent during setup. Google's unpaid-service terms permit product improvement and human review and instruct users not to submit sensitive, confidential, or personal information; regional exceptions apply. Evaluate https://ai.google.dev/gemini-api/terms before accepting identifiable recordings from real users. Application cleanup does not promise confidential or zero-retention processing by Google.
+Script preparation stays local unless you request an AI draft. Recording requires a configured server key and explicit cloud-processing consent during setup; there is no local-only recording mode. Consent is unchecked by default and is required before enabling devices or starting a practice. Every completed take automatically submits audio and selected frames for AI review. Google's unpaid-service terms permit product improvement and human review and instruct users not to submit sensitive, confidential, or personal information; regional exceptions apply. Evaluate https://ai.google.dev/gemini-api/terms before accepting identifiable recordings from real users. Application cleanup does not promise confidential or zero-retention processing by Google.
 
 - Combined video is never accepted by the backend. It stays in a browser Blob until reset or page close.
+- Talking-point flashcards share the script with Gemini after you confirm a first read-through or finish the first recorded take. Gemini summarizes the essential ideas into 3 cards for simple scripts and up to 8 for longer or more complex ones. Cards stay in memory for another take; editing the script invalidates them. Loading, retry, cancellation, and unavailable states are explicit. Flashcard failure does not block recording or replace AI analysis.
 - Script drafts and topic preferences survive reload in this tab's sessionStorage. Recordings are not persisted. New practice clears the recording and session while keeping the script for another take.
 - Audio and at most 20 resized JPEG frames are submitted for analysis.
 - Uploaded Gemini audio is explicitly deleted in `finally`; failed deletion is disclosed. Gemini Files also have an automatic expiry.
@@ -68,16 +69,16 @@ Pitchy estimates pitch periodicity, not intelligibility. Audio level and pitch-v
 
 ## Architecture
 
-The app is branded as **Heard**, with a warm neutral canvas, charcoal controls, an orange speech-and-waveform logo, self-hosted Geist and Instrument Serif fonts, and bundled Phosphor icons. Home (`#home`), Our approach (`#about`), and the speaking studio (`#studio`) share hash navigation and preserve the current draft and review. The homepage offers a topic launcher, keyboard-accessible illustrative review explorer, and compact FAQ. The studio uses three progress stages: **Prepare → Practice → Review**. Camera setup sits inside Practice; Listen, Watch, and Reflect remain separate review modes.
+The app is branded as **Heard**, with a warm neutral canvas, charcoal controls, an orange speech-and-waveform logo, self-hosted Geist and Instrument Serif fonts, and bundled Phosphor icons. Home (`#home`), Our approach (`#about`), and the speaking studio (`#studio`) form one continuous scrollable page. Sticky navigation smoothly scrolls to hash anchors and preserves the mounted studio, camera, draft, and review. Larger typography, a bare mark on the left of the hero, gentle section reveals, and reduced-motion support keep the page readable. The studio retains its Prepare → Practice → Review workflow within the page. Camera preview and posture overlay are mirrored; recorded playback remains unmirrored. The homepage offers a topic launcher, keyboard-accessible illustrative review explorer, and compact FAQ. The studio uses three progress stages: **Prepare → Practice → Review**. Camera setup sits inside Practice; Listen, Watch, and Reflect remain separate review modes.
 
-`src/pages.js` contains the public pages; `src/studio-views.js` contains preparation and setup; `src/style.css` defines shared tokens and responsive components. `src/brand.js` defines the scalable mark and wordmark; `public/heard-mark.svg` and `public/favicon.svg` provide standalone assets. `src/draft.js` retains the legacy storage key so existing drafts survive the rebrand, `src/text.js` handles text utilities, and `src/icons.js` imports only the Phosphor assets used. Fonts and icons are served locally, with no external font or image requests. Keyboard focus, loading, errors, local-only states, reduced motion, and reduced transparency are supported. Product decisions live in `PRODUCT.md` and the design system in `DESIGN.md`.
+`src/pages.js` contains the continuous public sections and studio mount; `src/studio-views.js` contains preparation and setup; `src/style.css` defines shared tokens and responsive components. `src/brand.js` defines the scalable mark and wordmark; `public/heard-mark.svg` and `public/favicon.svg` provide standalone assets. `src/draft.js` retains the legacy storage key so existing drafts survive the rebrand, `src/text.js` handles text utilities, and `src/icons.js` imports only the Phosphor assets used. Fonts and icons are served locally, with no external font or image requests. Keyboard focus, loading, errors, AI-unavailable states, reduced motion, and reduced transparency are supported. Product decisions live in `PRODUCT.md` and the design system in `DESIGN.md`.
 
 - `src/`: workflow UI, capture controller, posture worker, acoustic worker, safe API/chat rendering.
 - `shared/`: scoring and calibration/episode logic shared with the backend.
 - `server/`: ownership, validation, bounded Gemini jobs, stage isolation, media cleanup, live relay, chat.
 - `public/`: matching MediaPipe WASM/model, audio worklet, and favicon.
 
-Routes: `POST /api/scripts`, `POST /api/sessions`, `WS /api/sessions/:id/transcription`, `POST /api/sessions/:id/analyze`, `GET /api/sessions/:id/report`, `POST /api/sessions/:id/chat`, `DELETE /api/sessions/:id`.
+Routes: `POST /api/scripts`, `POST /api/flashcards`, `POST /api/sessions`, `WS /api/sessions/:id/transcription`, `POST /api/sessions/:id/analyze`, `GET /api/sessions/:id/report`, `POST /api/sessions/:id/chat`, `DELETE /api/sessions/:id`.
 
 Analysis accepts multipart fields `payload` (validated JSON) and `audio` (mono 16 kHz PCM WAV). The payload contains recording duration, posture mode, valid/deviation pose samples, posture episodes, timestamped frames, and acoustic summaries. Duplicate processing/completed submissions return the existing job. Partial jobs retain completed stages and can retry failed stages with the local audio. Chat is NDJSON with `{text}`, `{done:true}`, or `{error}` records.
 
@@ -93,7 +94,7 @@ pnpm test:e2e
 pnpm test:visual
 ```
 
-Browser tests use an installed Chromium binary when available (set `PLAYWRIGHT_EXECUTABLE_PATH` to override it) with fake camera/microphone devices. They test browser MediaRecorder/AudioWorklet capture, offline playback, muted video, reset, draft preservation, quota errors, keyboard access, and narrow layouts. Backend/provider tests validate malformed responses, timestamps, streaming completion, cancellation, and production origin controls with explicit doubles. Visual review fixtures are synthetic and do not prove live Gemini behavior. GitHub Actions runs unit tests, build, and browser tests.
+Browser tests use an installed Chromium binary when available (set `PLAYWRIGHT_EXECUTABLE_PATH` to override it) with fake camera/microphone devices. They test browser MediaRecorder/AudioWorklet capture, playback after AI failure, mandatory consent, adaptive flashcards, muted video, reset, draft preservation, quota errors, keyboard access, and narrow layouts. Backend/provider tests validate malformed responses, timestamps, streaming completion, cancellation, and production origin controls with explicit doubles. Visual review fixtures are synthetic and do not prove live Gemini behavior. GitHub Actions runs unit tests, build, and browser tests.
 
 For the separate live provider check, configure the server-side key and set `AI_TEST_AUDIO_PATH` to a non-sensitive mono 16 kHz, 16-bit PCM WAV. Optionally set `AI_TEST_FRAME_PATH` to a non-sensitive JPEG. Run `pnpm test:ai`. This sends the test material to Gemini and checks script generation, multipart analysis, timestamped transcription, all review stages, file cleanup, and streamed chat. It exits unsuccessfully if credentials or the fixture are missing; it never substitutes fake output. Live transcription and real-device calibration require their own manual checks.
 
@@ -103,7 +104,7 @@ Real-device and credentialed Gemini checks are still required before a public re
 
 For Vercel, import this repository with the project root unchanged. The root `server.mjs` entrypoint and explicit `api/[...path].mjs` fallback expose the Fastify API and serve the Vite build, and the build command downloads the local MediaPipe assets before compiling the frontend. Add `GEMINI_API_KEY` to the Vercel Project Environment Variables for both Preview and Production, then redeploy; environment-variable changes do not affect an existing deployment. Vercel's `VERCEL_URL`, `VERCEL_BRANCH_URL`, and `VERCEL_PROJECT_PRODUCTION_URL` are accepted automatically for API origin checks. Set `APP_ORIGIN` to the exact public HTTPS origin when using a custom domain.
 
-The Vercel deployment supports draft generation and the request/response analysis routes. Live transcription uses a WebSocket and may require a persistent Node host with WebSocket support; the app falls back to final local audio analysis when live transcription is unavailable. For the full five-minute, stateful experience, use the included Dockerfile with a reverse proxy/platform providing HTTPS and WebSocket support. Set `HOST=0.0.0.0`, `APP_ORIGIN` to the exact HTTPS origin, `SECURE_COOKIES=true`, and server-side Gemini secrets. Background jobs, in-memory sessions, and live WebSockets require a persistent backend; a frontend-only or serverless deployment is insufficient for the full experience. No public deployment or upload is performed by the local setup.
+The Vercel entrypoints route draft generation, flashcards, and request/response analysis through Fastify. Project settings and the live deployment still require verification before release; this change does not deploy the branch. Live transcription uses a WebSocket and may require a persistent Node host with WebSocket support; the app falls back to final local audio analysis when live transcription is unavailable. For the full five-minute, stateful experience, use the included Dockerfile with a reverse proxy/platform providing HTTPS and WebSocket support. Set `HOST=0.0.0.0`, `APP_ORIGIN` to the exact HTTPS origin, `SECURE_COOKIES=true`, and server-side Gemini secrets. Background jobs, in-memory sessions, and live WebSockets require a persistent backend; a frontend-only or serverless deployment is insufficient for the full experience. No public deployment or upload is performed by the local setup.
 
 ```powershell
 docker build -t heard .

@@ -1,5 +1,6 @@
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { mockAIPractice } from '../e2e/fixtures.js';
 
 // Internal visual evidence uses clearly labeled provider fixtures, never a live AI call.
 await mkdir('.impeccable/review', { recursive: true });
@@ -32,12 +33,13 @@ const capture = async (name, mobile = false) => {
   await page.waitForLoadState('networkidle');
   await page.evaluate(() => document.fonts.ready);
   await page.evaluate(async () => {
-    scrollTo(0, 0);
+    const id = location.hash.slice(1) || 'home';
+    document.getElementById(id)?.scrollIntoView({ behavior: 'instant', block: 'start' });
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   });
   if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth))
     throw new Error(`Overflow in ${name}`);
-  await page.screenshot({ path: `.impeccable/review/${name}.png`, fullPage: true });
+  await page.screenshot({ path: `.impeccable/review/${name}.png`, fullPage: false });
 };
 try {
   await page.goto('http://127.0.0.1:3000');
@@ -46,9 +48,7 @@ try {
   await page.goto('http://127.0.0.1:3000/#about');
   await capture('about-desktop');
   await capture('about-mobile', true);
-  await page.route('**/api/health', (route) =>
-    route.fulfill({ json: { ok: true, aiConfigured: true } }),
-  );
+  await mockAIPractice(page);
   await page.goto('http://127.0.0.1:3000/#studio');
   await page.reload();
   await page
@@ -61,10 +61,15 @@ try {
   await page.getByRole('button', { name: 'Set up my recording' }).click();
   await capture('setup-desktop');
   await capture('setup-mobile', true);
+  await page.locator('#consent').check();
+  await page.getByRole('button', { name: 'I’ve read my script once' }).click();
+  await page.locator('.flashcard').first().waitFor();
+  await page
+    .locator('.flashcards-section')
+    .screenshot({ path: '.impeccable/review/flashcards.png' });
   await page.getByRole('button', { name: 'Enable camera & microphone' }).click();
   await page.getByRole('button', { name: 'Start practice' }).waitFor({ state: 'visible' });
   await page.waitForFunction(() => !document.getElementById('start-recording').disabled);
-  await page.locator('#consent').check();
   let complete = false;
   const stage = {
     summary:
@@ -158,7 +163,7 @@ try {
   await capture('error-desktop');
   await capture('error-mobile', true);
   await page.setViewportSize({ width: 768, height: 1024 });
-  await page.screenshot({ path: '.impeccable/review/tablet.png', fullPage: true });
+  await page.screenshot({ path: '.impeccable/review/tablet.png', fullPage: false });
   await writeFile('.impeccable/review/console.json', JSON.stringify(errors, null, 2));
   console.log(`Visual evidence captured; browser errors: ${errors.length}`);
   if (errors.length) {

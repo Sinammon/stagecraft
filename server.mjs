@@ -11,5 +11,5 @@ console.log(`Heard: ${process.env.APP_ORIGIN || 'Vercel deployment'}`);
 console.log(
   process.env.GEMINI_API_KEY
     ? 'Gemini configured. Check project quotas before cloud processing.'
-    : 'Recording works locally. Add GEMINI_API_KEY to Vercel for AI features.',
+    : 'Script preparation is available. Add GEMINI_API_KEY to Vercel to enable AI practice.',
 );

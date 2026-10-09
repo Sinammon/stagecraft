@@ -1,7 +1,16 @@
 import { test, expect } from '@playwright/test';
-test('manual script, real browser capture, offline reviews, muted video, and reset', async ({
+import { mockAIPractice } from './fixtures.js';
+test('consented capture, automatic cards, failed AI playback, muted video, and reset', async ({
   page,
 }) => {
+  await mockAIPractice(page);
+  let cardRequests = 0;
+  page.on('request', (request) => {
+    if (request.url().endsWith('/api/flashcards')) cardRequests++;
+  });
+  await page.route('**/api/sessions/*/analyze', (route) =>
+    route.fulfill({ status: 503, json: { error: 'AI analysis unavailable. Retry later.' } }),
+  );
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
@@ -13,8 +22,12 @@ test('manual script, real browser capture, offline reviews, muted video, and res
     );
   await page.getByRole('button', { name: 'Set up my recording' }).click();
   await expect(page.getByRole('button', { name: 'Start practice' })).toBeDisabled();
+  await page.locator('#consent').check();
   await page.getByRole('button', { name: 'Enable camera & microphone' }).click();
   await expect(page.locator('#camera-status')).toContainText('loaded', { timeout: 20000 });
+  expect(await page.locator('#preview').evaluate((el) => getComputedStyle(el).transform)).toBe(
+    'matrix(-1, 0, 0, 1, 0, 0)',
+  );
   await page.getByRole('button', { name: 'Start practice' }).click();
   await expect(page.getByRole('button', { name: 'Finish practice' })).toBeVisible();
   await expect(page.locator('#timer')).not.toHaveText('00:00', { timeout: 8000 });
@@ -23,6 +36,9 @@ test('manual script, real browser capture, offline reviews, muted video, and res
     timeout: 10000,
   });
   await expect(page.locator('audio')).toBeVisible();
+  await expect(page.locator('.flashcard')).toHaveCount(3);
+  expect(cardRequests).toBe(1);
+  await expect(page.getByText('AI analysis unavailable. Retry later.')).toBeVisible();
   await expect
     .poll(() =>
       page.locator('audio').evaluate((el) => Number.isFinite(el.duration) && el.duration > 0),
@@ -40,6 +56,16 @@ test('manual script, real browser capture, offline reviews, muted video, and res
   await expect(page.locator('#chat-input')).toBeDisabled();
   await page.getByRole('button', { name: 'New practice' }).click();
   await expect(page.getByLabel('Your practice script')).toHaveValue(/Today I want/);
+  await page.getByRole('button', { name: 'Set up my recording' }).click();
+  await page.locator('#consent').check();
+  await page.getByRole('button', { name: 'Enable camera & microphone' }).click();
+  await page.getByRole('button', { name: 'Start practice' }).click();
+  await expect(page.locator('.flashcard')).toHaveCount(3);
+  await expect(page.locator('#recording-script')).not.toHaveAttribute('open');
+  await expect(page.locator('#timer')).not.toHaveText('00:00');
+  await page.getByRole('button', { name: 'Finish practice' }).click();
+  await expect(page.locator('audio')).toBeVisible();
+  expect(cardRequests).toBe(1);
   expect(errors).toEqual([]);
 });
 test('script generation and quota errors are visible without exposing a key', async ({ page }) => {
@@ -105,7 +131,7 @@ test('home, about, and studio navigation preserve the script and support browser
     .click();
   await page.getByLabel('Your practice script').fill('This draft should survive page navigation.');
   await page
-    .getByRole('navigation', { name: 'Website navigation' })
+    .getByRole('navigation', { name: 'Main navigation' })
     .getByRole('link', { name: 'Our approach' })
     .click();
   await page
@@ -123,10 +149,10 @@ test('landing page review explorer, FAQ, and mobile about page are usable', asyn
   await page.getByRole('link', { name: 'How it works', exact: true }).click();
   const watch = page.getByRole('tab', { name: 'Watch', exact: true });
   await watch.click();
-  await expect(page.getByRole('tabpanel')).toContainText('See how your message lands.');
+  await expect(page.locator('#demo-panel')).toContainText('See how your message lands.');
   await page.keyboard.press('ArrowRight');
   await expect(page.getByRole('tab', { name: 'Reflect', exact: true })).toBeFocused();
-  await expect(page.getByRole('tabpanel')).toContainText('Choose your next small improvement.');
+  await expect(page.locator('#demo-panel')).toContainText('Choose your next small improvement.');
   await page.getByText('Does Heard measure confidence?', { exact: true }).click();
   await expect(page.getByText(/A webcam cannot measure how confident you feel/)).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
@@ -151,6 +177,7 @@ test('landing page review explorer, FAQ, and mobile about page are usable', asyn
 });
 
 test('completed reviews render safe evidence links and streamed coaching', async ({ page }) => {
+  await mockAIPractice(page);
   const stage = {
     summary: 'You kept a steady rhythm. <img src=x onerror="window.bad=true">',
     strengths: [
@@ -204,8 +231,8 @@ test('completed reviews render safe evidence links and streamed coaching', async
     .getByLabel('Your practice script')
     .fill('A short practice script for testing complete reviews and coaching.');
   await page.getByRole('button', { name: 'Set up my recording' }).click();
-  await page.getByRole('button', { name: 'Enable camera & microphone' }).click();
   await page.locator('#consent').check();
+  await page.getByRole('button', { name: 'Enable camera & microphone' }).click();
   await expect(page.getByRole('button', { name: 'Start practice' })).toBeEnabled();
   await page.getByRole('button', { name: 'Start practice' }).click();
   await expect(page.locator('#timer')).not.toHaveText('00:00', { timeout: 8000 });

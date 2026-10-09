@@ -8,7 +8,14 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { GeminiProvider, publicProviderError } from './gemini.js';
 import { SessionStore } from './sessions.js';
-import { analysisSchema, scriptSchema, chatSchema, validateWav } from './validation.js';
+import {
+  analysisSchema,
+  scriptSchema,
+  chatSchema,
+  flashcardInputSchema,
+  validateWav,
+} from './validation.js';
+import { flashcardsSchema } from '../shared/flashcards.js';
 import { finalScore, postureCoverage } from '../shared/scoring.js';
 
 export async function buildApp({
@@ -119,12 +126,29 @@ export async function buildApp({
     });
     return { script: await provider.script(input, controller.signal) };
   });
+  app.post('/api/flashcards', async (request, reply) => {
+    limited(request, 'flashcards', 3);
+    const input = flashcardInputSchema.parse(request.body);
+    const controller = new AbortController();
+    reply.raw.on('close', () => {
+      if (!reply.raw.writableEnded) controller.abort();
+    });
+    const result = await provider.flashcards(input.script, controller.signal);
+    const parsed = flashcardsSchema.safeParse(result);
+    if (!parsed.success)
+      throw Object.assign(new Error('Invalid talking-point output.'), { code: 'INVALID_OUTPUT' });
+    return parsed.data;
+  });
   app.post('/api/sessions', async (request, reply) => {
     limited(request, 'sessions', 10, 3600000);
     if (request.body?.cloudConsent !== true)
       return reply
         .code(400)
         .send({ error: 'Confirm the cloud-processing disclosure before creating a session.' });
+    if (!provider.key)
+      return reply.code(503).send({
+        error: 'AI practice is unavailable. Configure the Gemini service before recording.',
+      });
     const owner = request.cookies.stagecraft || randomUUID();
     reply.setCookie('stagecraft', owner, {
       httpOnly: true,

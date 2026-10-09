@@ -47,6 +47,15 @@ export const scriptSchema = z.object({
   duration: z.number().int().min(1).max(5),
 });
 export const chatSchema = z.object({ message: z.string().trim().min(1).max(2000) });
+export const flashcardInputSchema = z.object({
+  script: z
+    .string()
+    .trim()
+    .min(3)
+    .max(15000)
+    .refine((s) => s.split(/\s+/).length >= 3),
+  cloudConsent: z.literal(true),
+});
 
 export function validateWav(buffer, durationMs) {
   if (

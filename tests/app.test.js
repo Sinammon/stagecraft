@@ -63,10 +63,11 @@ it('rejects cross-origin changes and requires cloud disclosure acknowledgment', 
 it('uses the injected environment and restricts production origins', async () => {
   const app = await buildApp({
     env: { NODE_ENV: 'production', APP_ORIGIN: 'https://stagecraft.example' },
+    provider: fakeProvider(),
     serveStatic: false,
   });
   apps.push(app);
-  expect((await app.inject({ url: '/api/health' })).json().aiConfigured).toBe(false);
+  expect((await app.inject({ url: '/api/health' })).json().aiConfigured).toBe(true);
   expect(
     (await app.inject({ url: '/api/health', headers: { origin: 'http://127.0.0.1:3000' } }))
       .statusCode,
